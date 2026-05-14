@@ -1,5 +1,6 @@
 package net.wolfig.codeowls.lang;
 
+import com.intellij.icons.AllIcons;
 import com.intellij.lang.Language;
 import org.junit.Test;
 
@@ -72,7 +73,7 @@ public class CodeownersFileTypeTest {
     Icon icon = fileType.getIcon();
 
     // Assert
-    assertNull(icon);
+    assertEquals(AllIcons.FileTypes.Text, icon);
   }
 
   @Test

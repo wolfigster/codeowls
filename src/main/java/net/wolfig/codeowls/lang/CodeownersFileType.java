@@ -1,8 +1,8 @@
 package net.wolfig.codeowls.lang;
 
+import com.intellij.icons.AllIcons;
 import com.intellij.openapi.fileTypes.LanguageFileType;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 
@@ -36,7 +36,7 @@ public final class CodeownersFileType extends LanguageFileType {
   }
 
   @Override
-  public @Nullable Icon getIcon() {
-    return null;
+  public @NotNull Icon getIcon() {
+    return AllIcons.FileTypes.Text;
   }
 }
