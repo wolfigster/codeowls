@@ -37,7 +37,7 @@ public class CodeownersSyntaxHighlighterTest {
   }
 
   @Test
-  public void highlightingLexer_isCodeownersLexer() {
+  public void getHighlightingLexer_default_returnsCodeownersLexer() {
     // Arrange
     CodeownersSyntaxHighlighter highlighter = new CodeownersSyntaxHighlighter();
 
@@ -50,52 +50,52 @@ public class CodeownersSyntaxHighlighterTest {
   }
 
   @Test
-  public void comment_mapsToCommentColor() {
+  public void getTokenHighlights_commentToken_returnsCommentColor() {
     assertSingleKey(CodeownersHighlightingColors.COMMENT, CodeownersTokenTypes.COMMENT);
   }
 
   @Test
-  public void pattern_mapsToPatternColor() {
+  public void getTokenHighlights_patternToken_returnsPatternColor() {
     assertSingleKey(CodeownersHighlightingColors.PATTERN, CodeownersTokenTypes.PATTERN);
   }
 
   @Test
-  public void userOwner_mapsToUserOwnerColor() {
+  public void getTokenHighlights_userOwnerToken_returnsUserOwnerColor() {
     assertSingleKey(CodeownersHighlightingColors.USER_OWNER, CodeownersTokenTypes.USER_OWNER);
   }
 
   @Test
-  public void teamOwner_mapsToTeamOwnerColor() {
+  public void getTokenHighlights_teamOwnerToken_returnsTeamOwnerColor() {
     assertSingleKey(CodeownersHighlightingColors.TEAM_OWNER, CodeownersTokenTypes.TEAM_OWNER);
   }
 
   @Test
-  public void roleOwner_mapsToRoleOwnerColor() {
+  public void getTokenHighlights_roleOwnerToken_returnsRoleOwnerColor() {
     assertSingleKey(CodeownersHighlightingColors.ROLE_OWNER, CodeownersTokenTypes.ROLE_OWNER);
   }
 
   @Test
-  public void emailOwner_mapsToEmailOwnerColor() {
+  public void getTokenHighlights_emailOwnerToken_returnsEmailOwnerColor() {
     assertSingleKey(CodeownersHighlightingColors.EMAIL_OWNER, CodeownersTokenTypes.EMAIL_OWNER);
   }
 
   @Test
-  public void sectionHeader_mapsToSectionHeaderColor() {
+  public void getTokenHighlights_sectionHeaderToken_returnsSectionHeaderColor() {
     assertSingleKey(CodeownersHighlightingColors.SECTION_HEADER, CodeownersTokenTypes.SECTION_HEADER);
   }
 
   @Test
-  public void approvalCount_mapsToApprovalCountColor() {
+  public void getTokenHighlights_approvalCountToken_returnsApprovalCountColor() {
     assertSingleKey(CodeownersHighlightingColors.APPROVAL_COUNT, CodeownersTokenTypes.APPROVAL_COUNT);
   }
 
   @Test
-  public void badCharacter_mapsToBadCharacterColor() {
+  public void getTokenHighlights_badCharacterToken_returnsBadCharacterColor() {
     assertSingleKey(CodeownersHighlightingColors.BAD_CHARACTER, CodeownersTokenTypes.BAD_CHARACTER);
   }
 
   @Test
-  public void whitespaceToken_hasNoHighlighting() {
+  public void getTokenHighlights_whitespaceToken_returnsEmptyArray() {
     // Arrange
     CodeownersSyntaxHighlighter highlighter = new CodeownersSyntaxHighlighter();
 
@@ -107,7 +107,7 @@ public class CodeownersSyntaxHighlighterTest {
   }
 
   @Test
-  public void unknownTokenType_hasNoHighlighting() {
+  public void getTokenHighlights_unknownTokenType_returnsEmptyArray() {
     // Arrange
     CodeownersSyntaxHighlighter highlighter = new CodeownersSyntaxHighlighter();
     IElementType unknown = new IElementType("UNKNOWN_TEST_TOKEN", null, false) {

@@ -19,7 +19,7 @@ import static org.junit.Assert.assertNotNull;
 public class CodeownersHighlightingColorsTest {
 
   @Test
-  public void comment_externalName() {
+  public void getExternalName_commentKey_returnsPublishedConstant() {
     // Arrange
     TextAttributesKey key = CodeownersHighlightingColors.COMMENT;
 
@@ -32,7 +32,7 @@ public class CodeownersHighlightingColorsTest {
   }
 
   @Test
-  public void pattern_externalName() {
+  public void getExternalName_patternKey_returnsPublishedConstant() {
     // Arrange
     TextAttributesKey key = CodeownersHighlightingColors.PATTERN;
 
@@ -45,7 +45,7 @@ public class CodeownersHighlightingColorsTest {
   }
 
   @Test
-  public void userOwner_externalName() {
+  public void getExternalName_userOwnerKey_returnsPublishedConstant() {
     // Arrange
     TextAttributesKey key = CodeownersHighlightingColors.USER_OWNER;
 
@@ -58,7 +58,7 @@ public class CodeownersHighlightingColorsTest {
   }
 
   @Test
-  public void teamOwner_externalName() {
+  public void getExternalName_teamOwnerKey_returnsPublishedConstant() {
     // Arrange
     TextAttributesKey key = CodeownersHighlightingColors.TEAM_OWNER;
 
@@ -71,7 +71,7 @@ public class CodeownersHighlightingColorsTest {
   }
 
   @Test
-  public void roleOwner_externalName() {
+  public void getExternalName_roleOwnerKey_returnsPublishedConstant() {
     // Arrange
     TextAttributesKey key = CodeownersHighlightingColors.ROLE_OWNER;
 
@@ -84,7 +84,7 @@ public class CodeownersHighlightingColorsTest {
   }
 
   @Test
-  public void emailOwner_externalName() {
+  public void getExternalName_emailOwnerKey_returnsPublishedConstant() {
     // Arrange
     TextAttributesKey key = CodeownersHighlightingColors.EMAIL_OWNER;
 
@@ -97,7 +97,7 @@ public class CodeownersHighlightingColorsTest {
   }
 
   @Test
-  public void sectionHeader_externalName() {
+  public void getExternalName_sectionHeaderKey_returnsPublishedConstant() {
     // Arrange
     TextAttributesKey key = CodeownersHighlightingColors.SECTION_HEADER;
 
@@ -110,7 +110,7 @@ public class CodeownersHighlightingColorsTest {
   }
 
   @Test
-  public void approvalCount_externalName() {
+  public void getExternalName_approvalCountKey_returnsPublishedConstant() {
     // Arrange
     TextAttributesKey key = CodeownersHighlightingColors.APPROVAL_COUNT;
 
@@ -123,7 +123,7 @@ public class CodeownersHighlightingColorsTest {
   }
 
   @Test
-  public void badCharacter_externalName() {
+  public void getExternalName_badCharacterKey_returnsPublishedConstant() {
     // Arrange
     TextAttributesKey key = CodeownersHighlightingColors.BAD_CHARACTER;
 

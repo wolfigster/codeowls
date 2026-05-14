@@ -29,7 +29,7 @@ import static org.junit.Assert.*;
 public class CodeownersColorSettingsPageTest {
 
   @Test
-  public void displayName_isLanguageId() {
+  public void getDisplayName_default_returnsLanguageId() {
     // Arrange
     CodeownersColorSettingsPage page = new CodeownersColorSettingsPage();
 
@@ -41,7 +41,7 @@ public class CodeownersColorSettingsPageTest {
   }
 
   @Test
-  public void icon_isNull() {
+  public void getIcon_default_returnsNull() {
     // Arrange
     CodeownersColorSettingsPage page = new CodeownersColorSettingsPage();
 
@@ -53,7 +53,7 @@ public class CodeownersColorSettingsPageTest {
   }
 
   @Test
-  public void highlighter_isCodeownersSyntaxHighlighter() {
+  public void getHighlighter_default_returnsCodeownersSyntaxHighlighter() {
     // Arrange
     CodeownersColorSettingsPage page = new CodeownersColorSettingsPage();
 
@@ -66,7 +66,7 @@ public class CodeownersColorSettingsPageTest {
   }
 
   @Test
-  public void demoText_isNonEmpty() {
+  public void getDemoText_default_returnsNonBlankString() {
     // Arrange
     CodeownersColorSettingsPage page = new CodeownersColorSettingsPage();
 
@@ -79,10 +79,10 @@ public class CodeownersColorSettingsPageTest {
   }
 
   @Test
-  public void demoText_coversTheInterestingTokenKinds() {
-    // Arrange
-    // The preview pane is the user's first impression — every documented token
-    // category should appear so users can see what each setting affects.
+  public void getDemoText_default_coversEveryDocumentedTokenKind() {
+    // Arrange — the preview pane is the user's first impression; every
+    // documented token category should appear so users can see what each
+    // setting affects.
     CodeownersColorSettingsPage page = new CodeownersColorSettingsPage();
 
     // Act
@@ -101,7 +101,7 @@ public class CodeownersColorSettingsPageTest {
   }
 
   @Test
-  public void attributeDescriptors_coverEveryHighlightedTokenKind() {
+  public void getAttributeDescriptors_default_coversEveryHighlightedTokenKind() {
     // Arrange
     CodeownersColorSettingsPage page = new CodeownersColorSettingsPage();
     Set<String> expected = new HashSet<>(Arrays.asList(
@@ -127,7 +127,7 @@ public class CodeownersColorSettingsPageTest {
   }
 
   @Test
-  public void colorDescriptors_isEmpty() {
+  public void getColorDescriptors_default_isEmpty() {
     // Arrange
     CodeownersColorSettingsPage page = new CodeownersColorSettingsPage();
 
@@ -140,7 +140,7 @@ public class CodeownersColorSettingsPageTest {
   }
 
   @Test
-  public void additionalHighlightingTagToDescriptorMap_isNull() {
+  public void getAdditionalHighlightingTagToDescriptorMap_default_returnsNull() {
     // Arrange
     CodeownersColorSettingsPage page = new CodeownersColorSettingsPage();
 

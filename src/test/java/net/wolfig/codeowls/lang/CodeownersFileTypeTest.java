@@ -20,7 +20,7 @@ import static org.junit.Assert.*;
 public class CodeownersFileTypeTest {
 
   @Test
-  public void instance_isNonNull() {
+  public void INSTANCE_default_isNonNull() {
     // Act
     CodeownersFileType instance = CodeownersFileType.INSTANCE;
 
@@ -29,7 +29,7 @@ public class CodeownersFileTypeTest {
   }
 
   @Test
-  public void name_matchesLanguageId() {
+  public void getName_default_returnsLanguageId() {
     // Arrange
     CodeownersFileType fileType = CodeownersFileType.INSTANCE;
 
@@ -41,7 +41,7 @@ public class CodeownersFileTypeTest {
   }
 
   @Test
-  public void description_isHumanReadable() {
+  public void getDescription_default_returnsHumanReadableString() {
     // Arrange
     CodeownersFileType fileType = CodeownersFileType.INSTANCE;
 
@@ -53,8 +53,8 @@ public class CodeownersFileTypeTest {
   }
 
   @Test
-  public void defaultExtension_isEmpty_becauseFilesAreDetectedByName() {
-    // Arrange
+  public void getDefaultExtension_default_returnsEmptyString() {
+    // Arrange — files are detected by filename in plugin.xml; no extension.
     CodeownersFileType fileType = CodeownersFileType.INSTANCE;
 
     // Act
@@ -65,7 +65,7 @@ public class CodeownersFileTypeTest {
   }
 
   @Test
-  public void icon_isNull() {
+  public void getIcon_default_returnsTextFileIcon() {
     // Arrange
     CodeownersFileType fileType = CodeownersFileType.INSTANCE;
 
@@ -77,7 +77,7 @@ public class CodeownersFileTypeTest {
   }
 
   @Test
-  public void language_isCodeownersLanguageInstance() {
+  public void getLanguage_default_returnsCodeownersLanguageInstance() {
     // Arrange
     CodeownersFileType fileType = CodeownersFileType.INSTANCE;
 

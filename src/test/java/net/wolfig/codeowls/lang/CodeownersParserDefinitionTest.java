@@ -25,7 +25,7 @@ import static org.junit.Assert.*;
 public class CodeownersParserDefinitionTest {
 
   @Test
-  public void createLexer_returnsCodeownersLexer() {
+  public void createLexer_anyProject_returnsCodeownersLexer() {
     // Arrange
     CodeownersParserDefinition def = new CodeownersParserDefinition();
 
@@ -38,7 +38,7 @@ public class CodeownersParserDefinitionTest {
   }
 
   @Test
-  public void createParser_returnsNonNullParser() {
+  public void createParser_anyProject_returnsNonNullParser() {
     // Arrange
     CodeownersParserDefinition def = new CodeownersParserDefinition();
 
@@ -50,7 +50,7 @@ public class CodeownersParserDefinitionTest {
   }
 
   @Test
-  public void fileNodeType_isExposedConstant() {
+  public void getFileNodeType_default_returnsFileConstant() {
     // Arrange
     CodeownersParserDefinition def = new CodeownersParserDefinition();
 
@@ -63,7 +63,7 @@ public class CodeownersParserDefinitionTest {
   }
 
   @Test
-  public void whitespaceTokens_isPlatformDefault() {
+  public void getWhitespaceTokens_default_returnsPlatformWhitespaceSet() {
     // Arrange
     CodeownersParserDefinition def = new CodeownersParserDefinition();
 
@@ -75,7 +75,7 @@ public class CodeownersParserDefinitionTest {
   }
 
   @Test
-  public void commentTokens_containCommentTokenType() {
+  public void getCommentTokens_default_containsCommentTokenType() {
     // Arrange
     CodeownersParserDefinition def = new CodeownersParserDefinition();
 
@@ -87,7 +87,7 @@ public class CodeownersParserDefinitionTest {
   }
 
   @Test
-  public void commentTokens_doNotContainOtherTokenTypes() {
+  public void getCommentTokens_default_excludesNonCommentTokenTypes() {
     // Arrange
     CodeownersParserDefinition def = new CodeownersParserDefinition();
 
@@ -101,7 +101,7 @@ public class CodeownersParserDefinitionTest {
   }
 
   @Test
-  public void stringLiteralElements_isEmpty() {
+  public void getStringLiteralElements_default_isEmpty() {
     // Arrange
     CodeownersParserDefinition def = new CodeownersParserDefinition();
 

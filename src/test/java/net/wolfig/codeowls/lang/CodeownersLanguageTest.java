@@ -18,7 +18,7 @@ import static org.junit.Assert.*;
 public class CodeownersLanguageTest {
 
   @Test
-  public void id_isStableConstant() {
+  public void ID_default_isStablePublishedString() {
     // Act
     String id = CodeownersLanguage.ID;
 
@@ -27,7 +27,7 @@ public class CodeownersLanguageTest {
   }
 
   @Test
-  public void instance_isNonNullSingleton() {
+  public void INSTANCE_default_isSingleton() {
     // Act
     CodeownersLanguage first = CodeownersLanguage.INSTANCE;
     CodeownersLanguage second = CodeownersLanguage.INSTANCE;
@@ -38,7 +38,7 @@ public class CodeownersLanguageTest {
   }
 
   @Test
-  public void instanceId_matchesConstant() {
+  public void getID_instance_returnsIdConstant() {
     // Arrange
     Language language = CodeownersLanguage.INSTANCE;
 

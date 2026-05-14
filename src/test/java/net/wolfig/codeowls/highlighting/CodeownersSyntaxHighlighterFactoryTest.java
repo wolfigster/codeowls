@@ -17,7 +17,7 @@ import static org.junit.Assert.*;
 public class CodeownersSyntaxHighlighterFactoryTest {
 
   @Test
-  public void returnsCodeownersSyntaxHighlighter_forNullProjectAndFile() {
+  public void getSyntaxHighlighter_nullProjectAndFile_returnsCodeownersSyntaxHighlighter() {
     // Arrange
     CodeownersSyntaxHighlighterFactory factory = new CodeownersSyntaxHighlighterFactory();
 
@@ -30,7 +30,7 @@ public class CodeownersSyntaxHighlighterFactoryTest {
   }
 
   @Test
-  public void returnsFreshInstance_eachCall() {
+  public void getSyntaxHighlighter_calledTwice_returnsNewInstanceEachTime() {
     // Arrange
     CodeownersSyntaxHighlighterFactory factory = new CodeownersSyntaxHighlighterFactory();
 

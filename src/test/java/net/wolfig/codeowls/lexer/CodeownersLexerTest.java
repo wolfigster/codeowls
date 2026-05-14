@@ -55,7 +55,7 @@ public class CodeownersLexerTest {
   }
 
   @Test
-  public void emptyInput_producesNoTokens() {
+  public void lex_emptyInput_producesNoTokens() {
     // Arrange
     String input = "";
 
@@ -69,7 +69,7 @@ public class CodeownersLexerTest {
   // ---- empty / whitespace ----
 
   @Test
-  public void singleSpace_isOneWhitespaceToken() {
+  public void lex_singleSpace_returnsOneWhitespaceToken() {
     // Arrange
     String input = " ";
 
@@ -83,7 +83,7 @@ public class CodeownersLexerTest {
   }
 
   @Test
-  public void consecutiveHorizontalSpace_isOneToken() {
+  public void lex_consecutiveHorizontalSpace_returnsOneToken() {
     // Arrange
     String input = "   \t  ";
 
@@ -96,7 +96,7 @@ public class CodeownersLexerTest {
   }
 
   @Test
-  public void eachNewlineIsItsOwnWhitespaceToken() {
+  public void lex_multipleNewlines_emitsOneWhitespaceTokenEach() {
     // Arrange
     String input = " \n\t\n";
 
@@ -109,7 +109,7 @@ public class CodeownersLexerTest {
   }
 
   @Test
-  public void crlf_isAbsorbedAsSingleWhitespaceToken() {
+  public void lex_crlfNewline_absorbedAsSingleWhitespaceToken() {
     // Arrange
     String input = "# a\r\n# b\r\n";
 
@@ -123,7 +123,7 @@ public class CodeownersLexerTest {
   }
 
   @Test
-  public void loneCarriageReturn_isOneWhitespaceToken() {
+  public void lex_loneCarriageReturn_returnsOneWhitespaceToken() {
     // Arrange
     String input = "\r";
 
@@ -136,8 +136,10 @@ public class CodeownersLexerTest {
     assertEquals(TokenType.WHITE_SPACE, tokens.getFirst().type);
   }
 
+  // ---- comments ----
+
   @Test
-  public void comment_consumesToEndOfLine() {
+  public void lex_commentLine_consumesToEndOfLine() {
     // Arrange
     String input = "# hello world";
     List<Token> expected = List.of(tok(COMMENT, "# hello world"));
@@ -149,10 +151,8 @@ public class CodeownersLexerTest {
     assertEquals(expected, actual);
   }
 
-  // ---- comments ----
-
   @Test
-  public void comment_endsAtNewlineAndNextLineLexesNormally() {
+  public void lex_commentFollowedByRule_endsCommentAtNewline() {
     // Arrange
     String input = "# hi\n* @alice";
     List<Token> expected = List.of(
@@ -168,7 +168,7 @@ public class CodeownersLexerTest {
   }
 
   @Test
-  public void leadingWhitespaceBeforeComment_isWhitespace() {
+  public void lex_leadingWhitespaceBeforeComment_emitsWhitespaceThenComment() {
     // Arrange
     String input = "   # comment";
 
@@ -181,8 +181,10 @@ public class CodeownersLexerTest {
     assertEquals(COMMENT, tokens.get(1).type);
   }
 
+  // ---- patterns + owner classification ----
+
   @Test
-  public void simpleRule_patternAndUserOwner() {
+  public void lex_simpleRule_emitsPatternThenUserOwner() {
     // Arrange
     String input = "* @alice";
     List<Token> expected = List.of(tok(PATTERN, "*"), tok(USER_OWNER, "@alice"));
@@ -194,10 +196,8 @@ public class CodeownersLexerTest {
     assertEquals(expected, actual);
   }
 
-  // ---- patterns + owner classification ----
-
   @Test
-  public void teamOwner_classifiedBySlashInToken() {
+  public void lex_ownerContainingSlash_classifiesAsTeamOwner() {
     // Arrange
     String input = "*.java @org/java-team";
     List<Token> expected = List.of(
@@ -212,7 +212,7 @@ public class CodeownersLexerTest {
   }
 
   @Test
-  public void roleOwner_maintainer() {
+  public void lex_doubleAtMaintainer_classifiesAsRoleOwner() {
     // Arrange
     String input = "/backend/** @@maintainer";
     List<Token> expected = List.of(
@@ -227,22 +227,31 @@ public class CodeownersLexerTest {
   }
 
   @Test
-  public void roleOwner_developerVariants() {
+  public void lex_doubleAtDeveloper_classifiesAsRoleOwner() {
     // Arrange
-    String developer = "* @@developer";
-    String developers = "* @@developers";
+    String input = "* @@developer";
 
     // Act
-    IElementType developerType = significant(developer).get(1).type;
-    IElementType developersType = significant(developers).get(1).type;
+    IElementType ownerType = significant(input).get(1).type;
 
     // Assert
-    assertEquals(ROLE_OWNER, developerType);
-    assertEquals(ROLE_OWNER, developersType);
+    assertEquals(ROLE_OWNER, ownerType);
   }
 
   @Test
-  public void emailOwner_classifiedByAtPastPositionZero() {
+  public void lex_doubleAtDevelopers_classifiesAsRoleOwner() {
+    // Arrange
+    String input = "* @@developers";
+
+    // Act
+    IElementType ownerType = significant(input).get(1).type;
+
+    // Assert
+    assertEquals(ROLE_OWNER, ownerType);
+  }
+
+  @Test
+  public void lex_emailLikeOwner_classifiesAsEmailOwner() {
     // Arrange
     String input = "docs/* tech-writer@example.com";
     List<Token> expected = List.of(
@@ -257,7 +266,7 @@ public class CodeownersLexerTest {
   }
 
   @Test
-  public void multipleOwners_onSameLineWithMixedKinds() {
+  public void lex_mixedOwnerKindsOnSameLine_classifiesEachIndividually() {
     // Arrange
     String input = "*.js @org/js-team js-lead@example.com";
     List<Token> expected = List.of(
@@ -273,7 +282,7 @@ public class CodeownersLexerTest {
   }
 
   @Test
-  public void wildcardWithTwoUserOwners() {
+  public void lex_wildcardWithTwoUserOwners_emitsBothAsUserOwner() {
     // Arrange
     String input = "* @global-owner1 @global-owner2";
     List<Token> expected = List.of(
@@ -289,7 +298,7 @@ public class CodeownersLexerTest {
   }
 
   @Test
-  public void leadingWhitespaceBeforePattern_isIgnored() {
+  public void lex_leadingWhitespaceBeforePattern_skipsToPattern() {
     // Arrange
     String input = "   * @alice";
     List<Token> expected = List.of(tok(PATTERN, "*"), tok(USER_OWNER, "@alice"));
@@ -302,7 +311,7 @@ public class CodeownersLexerTest {
   }
 
   @Test
-  public void tabsBetweenTokens_areTreatedAsWhitespace() {
+  public void lex_tabsBetweenTokens_classifyAsWhitespace() {
     // Arrange
     String input = "*\t@alice";
     List<Token> expected = List.of(tok(PATTERN, "*"), tok(USER_OWNER, "@alice"));
@@ -315,7 +324,7 @@ public class CodeownersLexerTest {
   }
 
   @Test
-  public void negationPattern_isJustAPattern_evenWithoutOwners() {
+  public void lex_negationPatternWithoutOwners_emitsAsSinglePattern() {
     // Arrange
     String input = "!/config/**/*.rb\n";
     List<Token> expected = List.of(tok(PATTERN, "!/config/**/*.rb"));
@@ -328,7 +337,7 @@ public class CodeownersLexerTest {
   }
 
   @Test
-  public void fileWithoutTrailingNewline_lexesLastTokenFully() {
+  public void lex_fileWithoutTrailingNewline_emitsLastTokenFully() {
     // Arrange
     String input = "* @alice";
     List<Token> expected = List.of(tok(PATTERN, "*"), tok(USER_OWNER, "@alice"));
@@ -340,8 +349,10 @@ public class CodeownersLexerTest {
     assertEquals(expected, actual);
   }
 
+  // ---- bad characters in owner position ----
+
   @Test
-  public void bareWordWithoutAt_inOwnerPosition_isBadCharacter() {
+  public void lex_bareWordInOwnerPosition_classifiesAsBadCharacter() {
     // Arrange
     String input = "* alice";
     List<Token> expected = List.of(tok(PATTERN, "*"), tok(BAD_CHARACTER, "alice"));
@@ -353,27 +364,11 @@ public class CodeownersLexerTest {
     assertEquals(expected, actual);
   }
 
-  // ---- bad characters in owner position ----
-
   @Test
-  public void atSignAtStartOfToken_isUserOwnerEvenWithoutBody() {
-    // Arrange
-    // "@" alone — startsWith("@@") false, contains("/") false → USER_OWNER
+  public void lex_loneAtSignInOwnerPosition_classifiesAsUserOwner() {
+    // Arrange — "@" alone — startsWith("@@") false, contains("/") false → USER_OWNER.
     String input = "* @";
     List<Token> expected = List.of(tok(PATTERN, "*"), tok(USER_OWNER, "@"));
-
-    // Act
-    List<Token> actual = significant(input);
-
-    // Assert
-    assertEquals(expected, actual);
-  }
-
-  @Test
-  public void sectionHeader_alone() {
-    // Arrange
-    String input = "[Backend]";
-    List<Token> expected = List.of(tok(SECTION_HEADER, "[Backend]"));
 
     // Act
     List<Token> actual = significant(input);
@@ -385,7 +380,20 @@ public class CodeownersLexerTest {
   // ---- sections ----
 
   @Test
-  public void optionalSectionHeader_caretAndBracketsAreOneToken() {
+  public void lex_sectionHeaderAlone_emitsAsSectionHeader() {
+    // Arrange
+    String input = "[Backend]";
+    List<Token> expected = List.of(tok(SECTION_HEADER, "[Backend]"));
+
+    // Act
+    List<Token> actual = significant(input);
+
+    // Assert
+    assertEquals(expected, actual);
+  }
+
+  @Test
+  public void lex_optionalSectionHeader_emitsCaretAndBracketsAsOneToken() {
     // Arrange
     String input = "^[Frontend]";
     List<Token> expected = List.of(tok(SECTION_HEADER, "^[Frontend]"));
@@ -398,7 +406,7 @@ public class CodeownersLexerTest {
   }
 
   @Test
-  public void section_followedByApprovalCount() {
+  public void lex_sectionHeaderFollowedByApprovalCount_emitsBothTokens() {
     // Arrange
     String input = "[Backend][2]";
     List<Token> expected = List.of(
@@ -413,7 +421,7 @@ public class CodeownersLexerTest {
   }
 
   @Test
-  public void section_approvalCountAndDefaultOwners_onSameLine() {
+  public void lex_sectionWithApprovalCountAndDefaultOwners_emitsAllFourTokens() {
     // Arrange
     String input = "[Backend][2] @org/backend @alice";
     List<Token> expected = List.of(
@@ -430,7 +438,7 @@ public class CodeownersLexerTest {
   }
 
   @Test
-  public void section_defaultOwnersWithoutApprovalCount() {
+  public void lex_sectionWithOwnersButNoApprovalCount_emitsSectionThenOwner() {
     // Arrange
     String input = "[Backend] @alice";
     List<Token> expected = List.of(
@@ -445,7 +453,7 @@ public class CodeownersLexerTest {
   }
 
   @Test
-  public void approvalCount_acceptedEvenWithWhitespaceAfterSection() {
+  public void lex_approvalCountAfterWhitespace_emitsAsApprovalCount() {
     // Arrange
     String input = "[Backend]   [2]";
     List<Token> expected = List.of(
@@ -460,7 +468,7 @@ public class CodeownersLexerTest {
   }
 
   @Test
-  public void unclosedSectionBracket_runsToEndOfLine() {
+  public void lex_unclosedSectionBracket_consumesToEndOfLine() {
     // Arrange
     String input = "[Backend\n";
     List<Token> expected = List.of(tok(SECTION_HEADER, "[Backend"));
@@ -473,10 +481,9 @@ public class CodeownersLexerTest {
   }
 
   @Test
-  public void sectionState_resetsAfterNewline_soBracketsAreTreatedAsHeader() {
-    // Arrange
-    // After the newline, lexer returns to LINE_START — "[2]" is then SECTION_HEADER,
-    // not APPROVAL_COUNT.
+  public void lex_bracketsOnNewLineAfterSection_classifyAsSectionHeader() {
+    // Arrange — after the newline, lexer returns to LINE_START — "[2]" is then
+    // SECTION_HEADER, not APPROVAL_COUNT.
     String input = "[Backend]\n[2]";
     List<Token> expected = List.of(
             tok(SECTION_HEADER, "[Backend]"),
@@ -490,23 +497,34 @@ public class CodeownersLexerTest {
   }
 
   @Test
-  public void approvalCount_distinctFromSectionHeader() {
+  public void lex_bracketsAtLineStart_classifyAsSectionHeader() {
     // Arrange
-    String headerInput = "[2]";
-    String countInput = "[A][2]";
+    String input = "[2]";
 
     // Act
-    IElementType asHeader = significant(headerInput).getFirst().type;
-    IElementType asCount = significant(countInput).get(1).type;
+    IElementType type = significant(input).getFirst().type;
 
     // Assert
-    assertEquals(SECTION_HEADER, asHeader);
-    assertEquals(APPROVAL_COUNT, asCount);
-    assertNotEquals(asHeader, asCount);
+    assertEquals(SECTION_HEADER, type);
   }
 
   @Test
-  public void demoText_lexesWithoutAnyBadCharacters() {
+  public void lex_bracketsAfterSectionHeader_classifyAsApprovalCount() {
+    // Arrange
+    String input = "[A][2]";
+
+    // Act
+    IElementType type = significant(input).get(1).type;
+
+    // Assert
+    assertEquals(APPROVAL_COUNT, type);
+    assertNotEquals(SECTION_HEADER, type);
+  }
+
+  // ---- realistic content ----
+
+  @Test
+  public void lex_settingsPageDemoText_producesNoBadCharacterTokens() {
     // Arrange
     String demo = """
             # Global owner
@@ -533,10 +551,10 @@ public class CodeownersLexerTest {
     }
   }
 
-  // ---- realistic content ----
+  // ---- structural invariants ----
 
   @Test
-  public void tokenOffsets_areContiguousAndCoverEntireInput() {
+  public void lex_tokenOffsets_areContiguousAndCoverEntireInput() {
     // Arrange
     String input = "* @alice\n[Section][2] @bob\n";
     CodeownersLexer lexer = new CodeownersLexer();
@@ -558,10 +576,8 @@ public class CodeownersLexerTest {
     assertEquals(input.length(), expectedStart);
   }
 
-  // ---- structural invariants ----
-
   @Test
-  public void buffer_isExposedThroughGetBufferSequence() {
+  public void start_inputBuffer_isExposedThroughGetBufferSequence() {
     // Arrange
     String input = "* @alice";
     CodeownersLexer lexer = new CodeownersLexer();
