@@ -54,6 +54,10 @@
         <lang.syntaxHighlighterFactory language="CODEOWNERS"
                                        implementationClass="net.wolfig.codeowls.highlighting.CodeownersSyntaxHighlighterFactory"/>
         <colorSettingsPage implementation="net.wolfig.codeowls.settings.CodeownersColorSettingsPage"/>
+
+        <!-- Status bar widget that shows the CODEOWNERS owners of the currently selected file. -->
+        <statusBarWidgetFactory id="Codeowls.StatusBarWidget"
+                                implementation="net.wolfig.codeowls.statusbar.CodeownersStatusBarWidgetFactory"/>
     </extensions>
 
 </idea-plugin>
