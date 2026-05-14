@@ -15,7 +15,7 @@ import static org.junit.Assert.*;
  *
  * <p>Verifies the {@code IElementType → TextAttributesKey} mapping for every
  * token category produced by {@link CodeownersLexer}, the whitespace passthrough,
- * and the empty-array fallback for tokens the highlighter does not recognise.
+ * and the empty-array fallback for tokens the highlighter does not recognize.
  *
  * <p>Tests follow the Arrange / Act / Assert pattern.
  */

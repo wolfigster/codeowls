@@ -7,7 +7,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Hand-written lexer for CODEOWNERS files.
+ * Handwritten lexer for CODEOWNERS files.
  *
  * <p>Each line is one of:
  * <ul>

@@ -78,8 +78,8 @@ public class CodeownersLexerTest {
 
     // Assert
     assertEquals(1, tokens.size());
-    assertEquals(TokenType.WHITE_SPACE, tokens.get(0).type);
-    assertEquals(" ", tokens.get(0).text);
+    assertEquals(TokenType.WHITE_SPACE, tokens.getFirst().type);
+    assertEquals(" ", tokens.getFirst().text);
   }
 
   @Test
@@ -92,7 +92,7 @@ public class CodeownersLexerTest {
 
     // Assert
     assertEquals(1, tokens.size());
-    assertEquals(input, tokens.get(0).text);
+    assertEquals(input, tokens.getFirst().text);
   }
 
   @Test
@@ -132,8 +132,8 @@ public class CodeownersLexerTest {
 
     // Assert
     assertEquals(1, tokens.size());
-    assertEquals("\r", tokens.get(0).text);
-    assertEquals(TokenType.WHITE_SPACE, tokens.get(0).type);
+    assertEquals("\r", tokens.getFirst().text);
+    assertEquals(TokenType.WHITE_SPACE, tokens.getFirst().type);
   }
 
   @Test
@@ -496,7 +496,7 @@ public class CodeownersLexerTest {
     String countInput = "[A][2]";
 
     // Act
-    IElementType asHeader = significant(headerInput).get(0).type;
+    IElementType asHeader = significant(headerInput).getFirst().type;
     IElementType asCount = significant(countInput).get(1).type;
 
     // Assert

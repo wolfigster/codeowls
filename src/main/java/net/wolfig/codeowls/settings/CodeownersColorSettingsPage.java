@@ -37,25 +37,27 @@ public class CodeownersColorSettingsPage implements ColorSettingsPage {
    * Sample CODEOWNERS content shown in the preview pane.
    */
   private static final String DEMO_TEXT =
-          "# Global owner — matched when no other rule applies\n" +
-                  "* @global-owner1 @global-owner2\n" +
-                  "\n" +
-                  "# Later rules take precedence over earlier ones\n" +
-                  "*.java   @org/java-team\n" +
-                  "*.js     @org/js-team   js-lead@example.com\n" +
-                  "/build/logs/  @doctocat\n" +
-                  "docs/**/*.md  @org/docs  tech-writer@example.com\n" +
-                  "\n" +
-                  "# Negation pattern (GitLab) — exclude from a previous default\n" +
-                  "!/config/**/*.rb\n" +
-                  "\n" +
-                  "# GitLab section header with approval count AND default owners on the same line\n" +
-                  "[Backend][2] @org/backend  @alice\n" +
-                  "/backend/api/**  @@maintainer\n" +
-                  "\n" +
-                  "# GitLab optional section (approvals not required)\n" +
-                  "^[Frontend][1] @org/frontend\n" +
-                  "/frontend/**  @bob  @carol\n";
+          """
+                  # Global owner — matched when no other rule applies
+                  * @global-owner1 @global-owner2
+                  
+                  # Later rules take precedence over earlier ones
+                  *.java   @org/java-team
+                  *.js     @org/js-team   js-lead@example.com
+                  /build/logs/  @doctocat
+                  docs/**/*.md  @org/docs  tech-writer@example.com
+                  
+                  # Negation pattern (GitLab) — exclude from a previous default
+                  !/config/**/*.rb
+                  
+                  # GitLab section header with approval count AND default owners on the same line
+                  [Backend][2] @org/backend  @alice
+                  /backend/api/**  @@maintainer
+                  
+                  # GitLab optional section (approvals not required)
+                  ^[Frontend][1] @org/frontend
+                  /frontend/**  @bob  @carol
+                  """;
 
   @Override
   public @NotNull String getDisplayName() {
