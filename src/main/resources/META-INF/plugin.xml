@@ -13,21 +13,47 @@
     <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-description -->
     <description><![CDATA[
-        Enter short description for your plugin here.<br>
-        <em>most HTML tags may be used</em>
+        Syntax highlighting for <code>CODEOWNERS</code> files used by GitHub, GitLab, and Bitbucket.<br>
+        <br>
+        Recognises:
+        <ul>
+          <li>Comments (<code># …</code>)</li>
+          <li>File-glob patterns, including GitLab negation patterns (<code>!/config/**/*.rb</code>)</li>
+          <li>User owners (<code>@alice</code>), team owners (<code>@org/team</code>),
+              role owners (<code>@@maintainer</code>, <code>@@developer</code>, <code>@@developers</code>),
+              and e-mail owners (<code>alice@example.com</code>)</li>
+          <li>GitLab section headers (<code>[Backend]</code>), optional sections
+              (<code>^[Backend]</code>), and approval counts (<code>[2]</code>)</li>
+          <li>Default owners on the same line as a section header
+              (<code>[Backend][2] @org/backend @alice</code>)</li>
+        </ul>
+        Matches any file literally named <code>CODEOWNERS</code> &mdash; including
+        <code>.github/CODEOWNERS</code>, <code>.gitlab/CODEOWNERS</code>, <code>docs/CODEOWNERS</code>,
+        and a repository-root <code>CODEOWNERS</code>.<br>
+        <br>
+        Colors are configurable under <em>Settings → Editor → Color Scheme → CODEOWNERS</em>.
         ]]></description>
 
     <!-- Product and plugin compatibility requirements.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
     <depends>com.intellij.modules.platform</depends>
 
-    <resource-bundle>messages.MyMessageBundle</resource-bundle>
-
     <!-- Extensions defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
-        <toolWindow id="MyToolWindow" factoryClass="net.wolfig.MyToolWindowFactory"
-                    icon="AllIcons.Toolwindows.ToolWindowPalette"/>
+
+        <!-- CODEOWNERS language support -->
+        <!-- Matches any file named CODEOWNERS, including .github/CODEOWNERS, .gitlab/CODEOWNERS, docs/CODEOWNERS -->
+        <fileType name="CODEOWNERS"
+                  implementationClass="net.wolfig.codeowls.lang.CodeownersFileType"
+                  fieldName="INSTANCE"
+                  language="CODEOWNERS"
+                  patterns="CODEOWNERS"/>
+        <lang.parserDefinition language="CODEOWNERS"
+                               implementationClass="net.wolfig.codeowls.lang.CodeownersParserDefinition"/>
+        <lang.syntaxHighlighterFactory language="CODEOWNERS"
+                                       implementationClass="net.wolfig.codeowls.highlighting.CodeownersSyntaxHighlighterFactory"/>
+        <colorSettingsPage implementation="net.wolfig.codeowls.settings.CodeownersColorSettingsPage"/>
     </extensions>
 
 </idea-plugin>
