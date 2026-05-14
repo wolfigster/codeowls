@@ -4,6 +4,7 @@ import com.intellij.openapi.components.Service;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.roots.ProjectRootManager;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import net.wolfig.codeowls.matcher.CodeownersRule;
@@ -50,6 +51,21 @@ public final class CodeownersService {
 
   public static @NotNull CodeownersService getInstance(@NotNull Project project) {
     return project.getService(CodeownersService.class);
+  }
+
+  private static @Nullable VirtualFile findCodeownersUnder(@NotNull VirtualFile root) {
+    for (String candidate : CANDIDATE_PATHS) {
+      VirtualFile vf = root.findFileByRelativePath(candidate);
+      if (vf != null && vf.isValid() && !vf.isDirectory()) return vf;
+    }
+    return null;
+  }
+
+  private static @Nullable String relativizeAgainst(@NotNull String filePath, @NotNull String rootPath) {
+    if (filePath.equals(rootPath)) return "";
+    String prefix = rootPath.endsWith("/") ? rootPath : rootPath + "/";
+    if (!filePath.startsWith(prefix)) return null;
+    return filePath.substring(prefix.length());
   }
 
   /**
@@ -121,29 +137,35 @@ public final class CodeownersService {
   }
 
   private @Nullable VirtualFile locateCodeownersFile() {
+    // Content roots first — works for multi-module setups and for in-memory
+    // file systems used by light test fixtures.
+    for (VirtualFile root : ProjectRootManager.getInstance(project).getContentRoots()) {
+      VirtualFile vf = findCodeownersUnder(root);
+      if (vf != null) return vf;
+    }
+    // Fallback for projects without registered content roots (e.g. attached
+    // directories): consult the on-disk base path via the LocalFileSystem.
     String basePath = project.getBasePath();
-    if (basePath == null) return null;
-    VirtualFile baseDir = LocalFileSystem.getInstance().findFileByPath(basePath);
-    if (baseDir == null) return null;
-    for (String candidate : CANDIDATE_PATHS) {
-      VirtualFile vf = baseDir.findFileByRelativePath(candidate);
-      if (vf != null && vf.isValid() && !vf.isDirectory()) return vf;
+    if (basePath != null) {
+      VirtualFile baseDir = LocalFileSystem.getInstance().findFileByPath(basePath);
+      if (baseDir != null) return findCodeownersUnder(baseDir);
     }
     return null;
   }
 
   /**
    * Project-relative, forward-slash path with no leading {@code /} — the form
-   * CODEOWNERS patterns are written against.
+   * CODEOWNERS patterns are written against. Tries every content root before
+   * falling back to {@link Project#getBasePath()}.
    */
   private @Nullable String relativize(@NotNull VirtualFile file) {
-    String basePath = project.getBasePath();
-    if (basePath == null) return null;
     String filePath = file.getPath();
-    if (filePath.equals(basePath)) return "";
-    String prefix = basePath.endsWith("/") ? basePath : basePath + "/";
-    if (!filePath.startsWith(prefix)) return null;
-    return filePath.substring(prefix.length());
+    for (VirtualFile root : ProjectRootManager.getInstance(project).getContentRoots()) {
+      String rel = relativizeAgainst(filePath, root.getPath());
+      if (rel != null) return rel;
+    }
+    String basePath = project.getBasePath();
+    return basePath == null ? null : relativizeAgainst(filePath, basePath);
   }
 
   private record Cache(@NotNull VirtualFile sourceFile, long stamp, @NotNull List<CodeownersRule> rules) {
