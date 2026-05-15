@@ -67,6 +67,27 @@
         <!-- Path and owner completion inside CODEOWNERS rules. -->
         <completion.contributor language="CODEOWNERS"
                                 implementationClass="net.wolfig.codeowls.completion.CodeownersCompletionContributor"/>
+
+        <!-- End-of-line inlay hints showing "N files" for each glob CODEOWNERS rule. -->
+        <codeInsight.declarativeInlayProvider
+                language="CODEOWNERS"
+                providerId="codeowls.fileCount"
+                bundle="messages.CodeownersBundle"
+                nameKey="inlay.hints.file.count.name"
+                descriptionKey="inlay.hints.file.count.description"
+                implementationClass="net.wolfig.codeowls.inlay.CodeownersFileCountInlayHintsProvider"
+                group="OTHER_GROUP"
+                isEnabledByDefault="true"/>
     </extensions>
+
+    <actions resource-bundle="messages.CodeownersBundle">
+        <!-- Quick toggle for the file-count inlay hint — same persistent setting
+             as Settings | Editor | Inlay Hints | CODEOWNERS | File count, but
+             reachable from Find Action (Ctrl/Cmd+Shift+A). -->
+        <action id="Codeowls.ToggleFileCountHints"
+                class="net.wolfig.codeowls.inlay.ToggleCodeownersFileCountHintsAction"
+                text="_Toggle CODEOWNERS File Count Hints_"
+                description="_Enable or disable CODEOWNERS file count inlay hints_"/>
+    </actions>
 
 </idea-plugin>
