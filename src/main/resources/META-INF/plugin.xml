@@ -63,6 +63,10 @@
         <!-- Status bar widget that shows the CODEOWNERS owners of the currently selected file. -->
         <statusBarWidgetFactory id="Codeowls.StatusBarWidget"
                                 implementation="net.wolfig.codeowls.statusbar.CodeownersStatusBarWidgetFactory"/>
+
+        <!-- Path and owner completion inside CODEOWNERS rules. -->
+        <completion.contributor language="CODEOWNERS"
+                                implementationClass="net.wolfig.codeowls.completion.CodeownersCompletionContributor"/>
     </extensions>
 
 </idea-plugin>
