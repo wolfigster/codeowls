@@ -4,8 +4,6 @@ import com.intellij.openapi.components.Service;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.roots.ProjectRootManager;
-import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import net.wolfig.codeowls.matcher.CodeownersRule;
 import net.wolfig.codeowls.matcher.CodeownersRuleParser;
@@ -24,9 +22,12 @@ import java.util.List;
  * widget owns its own VFS / PSI listeners and drives re-resolution; centralizing
  * cache-invalidation that way avoids a feedback loop between service and UI.
  *
- * <p>Lookup order matches GitHub's documented precedence —
- * {@code .github/CODEOWNERS} > {@code CODEOWNERS} > {@code docs/CODEOWNERS} —
- * with {@code .gitlab/CODEOWNERS} added at the end for GitLab projects.
+ * <p>For a given file the service walks up its parent chain looking for
+ * {@code .github/CODEOWNERS}, {@code CODEOWNERS}, {@code docs/CODEOWNERS}, and
+ * {@code .gitlab/CODEOWNERS} (GitHub's documented precedence, plus the GitLab
+ * location). The first hit wins, which makes monorepos with per-module
+ * CODEOWNERS files behave the way {@code git} does and keeps the lookup
+ * independent of how the project's content roots happen to be registered.
  */
 @Service(Service.Level.PROJECT)
 public final class CodeownersService {
@@ -53,10 +54,16 @@ public final class CodeownersService {
     return project.getService(CodeownersService.class);
   }
 
-  private static @Nullable VirtualFile findCodeownersUnder(@NotNull VirtualFile root) {
-    for (String candidate : CANDIDATE_PATHS) {
-      VirtualFile vf = root.findFileByRelativePath(candidate);
-      if (vf != null && vf.isValid() && !vf.isDirectory()) return vf;
+  private static @Nullable Located locateFor(@NotNull VirtualFile file) {
+    VirtualFile dir = file.isDirectory() ? file : file.getParent();
+    while (dir != null) {
+      for (String candidate : CANDIDATE_PATHS) {
+        VirtualFile vf = dir.findFileByRelativePath(candidate);
+        if (vf != null && vf.isValid() && !vf.isDirectory()) {
+          return new Located(vf, dir);
+        }
+      }
+      dir = dir.getParent();
     }
     return null;
   }
@@ -70,18 +77,20 @@ public final class CodeownersService {
 
   /**
    * Returns the owners that apply to {@code file} (last matching rule wins),
-   * or {@link CodeownersOwnerResolution#NONE} if no rule applies, no CODEOWNERS
-   * file exists, or {@code file} lies outside the project root.
+   * or {@link CodeownersOwnerResolution#NONE} if no rule applies or no
+   * CODEOWNERS file is reachable from {@code file}'s ancestors.
    *
    * <p>Must be called under a read action — it accesses VFS and possibly
    * document state.
    */
   public @NotNull CodeownersOwnerResolution resolveOwners(@Nullable VirtualFile file) {
     if (file == null || project.isDisposed()) return CodeownersOwnerResolution.NONE;
-    String relativePath = relativize(file);
+    Located located = locateFor(file);
+    if (located == null) return CodeownersOwnerResolution.NONE;
+    String relativePath = relativizeAgainst(file.getPath(), located.root.getPath());
     if (relativePath == null) return CodeownersOwnerResolution.NONE;
 
-    List<CodeownersRule> rules = getRules();
+    List<CodeownersRule> rules = getRules(located.codeownersFile);
     // Last-match-wins: walk in reverse and stop at the first rule that matches.
     for (int i = rules.size() - 1; i >= 0; i--) {
       CodeownersRule rule = rules.get(i);
@@ -100,12 +109,7 @@ public final class CodeownersService {
     return c == null ? null : c.sourceFile;
   }
 
-  private @NotNull List<CodeownersRule> getRules() {
-    VirtualFile codeownersFile = locateCodeownersFile();
-    if (codeownersFile == null) {
-      cache = null;
-      return List.of();
-    }
+  private @NotNull List<CodeownersRule> getRules(@NotNull VirtualFile codeownersFile) {
     long stamp = currentStamp(codeownersFile);
     Cache existing = cache;
     if (existing != null && existing.sourceFile.equals(codeownersFile) && existing.stamp == stamp) {
@@ -136,36 +140,7 @@ public final class CodeownersService {
     return doc != null ? doc.getModificationStamp() : file.getModificationStamp();
   }
 
-  private @Nullable VirtualFile locateCodeownersFile() {
-    // Content roots first — works for multi-module setups and for in-memory
-    // file systems used by light test fixtures.
-    for (VirtualFile root : ProjectRootManager.getInstance(project).getContentRoots()) {
-      VirtualFile vf = findCodeownersUnder(root);
-      if (vf != null) return vf;
-    }
-    // Fallback for projects without registered content roots (e.g. attached
-    // directories): consult the on-disk base path via the LocalFileSystem.
-    String basePath = project.getBasePath();
-    if (basePath != null) {
-      VirtualFile baseDir = LocalFileSystem.getInstance().findFileByPath(basePath);
-      if (baseDir != null) return findCodeownersUnder(baseDir);
-    }
-    return null;
-  }
-
-  /**
-   * Project-relative, forward-slash path with no leading {@code /} — the form
-   * CODEOWNERS patterns are written against. Tries every content root before
-   * falling back to {@link Project#getBasePath()}.
-   */
-  private @Nullable String relativize(@NotNull VirtualFile file) {
-    String filePath = file.getPath();
-    for (VirtualFile root : ProjectRootManager.getInstance(project).getContentRoots()) {
-      String rel = relativizeAgainst(filePath, root.getPath());
-      if (rel != null) return rel;
-    }
-    String basePath = project.getBasePath();
-    return basePath == null ? null : relativizeAgainst(filePath, basePath);
+  private record Located(@NotNull VirtualFile codeownersFile, @NotNull VirtualFile root) {
   }
 
   private record Cache(@NotNull VirtualFile sourceFile, long stamp, @NotNull List<CodeownersRule> rules) {

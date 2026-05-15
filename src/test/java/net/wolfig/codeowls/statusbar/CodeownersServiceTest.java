@@ -1,5 +1,6 @@
 package net.wolfig.codeowls.statusbar;
 
+import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
@@ -61,10 +62,18 @@ public class CodeownersServiceTest {
     return CodeownersService.getInstance(project());
   }
 
+  /**
+   * Drives {@link CodeownersService#resolveOwners} from inside a read action,
+   * mirroring how the status-bar widget calls it in production.
+   */
+  private CodeownersOwnerResolution resolveOwners(VirtualFile file) {
+    return ReadAction.compute(() -> service().resolveOwners(file));
+  }
+
   @Test
   public void resolveOwners_nullFile_returnsNone() {
     // Act
-    CodeownersOwnerResolution res = service().resolveOwners(null);
+    CodeownersOwnerResolution res = resolveOwners(null);
 
     // Assert
     assertTrue(res.isEmpty());
@@ -76,7 +85,7 @@ public class CodeownersServiceTest {
     VirtualFile file = fixture.addFileToProject("src/Foo.java", "class Foo {}").getVirtualFile();
 
     // Act
-    CodeownersOwnerResolution res = service().resolveOwners(file);
+    CodeownersOwnerResolution res = resolveOwners(file);
 
     // Assert
     assertTrue(res.isEmpty());
@@ -89,7 +98,7 @@ public class CodeownersServiceTest {
     VirtualFile file = fixture.addFileToProject("src/Foo.java", "class Foo {}").getVirtualFile();
 
     // Act
-    CodeownersOwnerResolution res = service().resolveOwners(file);
+    CodeownersOwnerResolution res = resolveOwners(file);
 
     // Assert
     assertFalse(res.isEmpty());
@@ -106,7 +115,7 @@ public class CodeownersServiceTest {
     VirtualFile file = fixture.addFileToProject("src/Foo.java", "").getVirtualFile();
 
     // Act
-    CodeownersOwnerResolution res = service().resolveOwners(file);
+    CodeownersOwnerResolution res = resolveOwners(file);
 
     // Assert
     assertEquals(List.of("@second"), res.owners());
@@ -120,7 +129,7 @@ public class CodeownersServiceTest {
     VirtualFile file = fixture.addFileToProject("Foo.java", "").getVirtualFile();
 
     // Act
-    CodeownersOwnerResolution res = service().resolveOwners(file);
+    CodeownersOwnerResolution res = resolveOwners(file);
 
     // Assert
     assertEquals(List.of("@github"), res.owners());
@@ -133,7 +142,7 @@ public class CodeownersServiceTest {
     VirtualFile file = fixture.addFileToProject("Foo.java", "").getVirtualFile();
 
     // Act
-    CodeownersOwnerResolution res = service().resolveOwners(file);
+    CodeownersOwnerResolution res = resolveOwners(file);
 
     // Assert
     assertEquals(List.of("@root"), res.owners());
@@ -146,7 +155,7 @@ public class CodeownersServiceTest {
     VirtualFile file = fixture.addFileToProject("Foo.java", "").getVirtualFile();
 
     // Act
-    CodeownersOwnerResolution res = service().resolveOwners(file);
+    CodeownersOwnerResolution res = resolveOwners(file);
 
     // Assert
     assertEquals(List.of("@docs"), res.owners());
@@ -160,7 +169,7 @@ public class CodeownersServiceTest {
     VirtualFile file = fixture.addFileToProject("Foo.java", "").getVirtualFile();
 
     // Act
-    CodeownersOwnerResolution res = service().resolveOwners(file);
+    CodeownersOwnerResolution res = resolveOwners(file);
 
     // Assert
     assertEquals(
@@ -173,7 +182,7 @@ public class CodeownersServiceTest {
     // Arrange
     PsiFile codeowners = fixture.addFileToProject(".github/CODEOWNERS", "* @any\n");
     VirtualFile file = fixture.addFileToProject("Foo.java", "").getVirtualFile();
-    service().resolveOwners(file);
+    resolveOwners(file);
 
     // Act
     VirtualFile sourceFile = service().getCodeownersFile();
@@ -187,8 +196,9 @@ public class CodeownersServiceTest {
     // Arrange — initial CODEOWNERS, first resolve seeds the cache.
     PsiFile codeowners = fixture.addFileToProject(".github/CODEOWNERS", "*.java @first\n");
     VirtualFile target = fixture.addFileToProject("Foo.java", "").getVirtualFile();
-    assertEquals(List.of("@first"), service().resolveOwners(target).owners());
-    Document doc = FileDocumentManager.getInstance().getDocument(codeowners.getVirtualFile());
+    assertEquals(List.of("@first"), resolveOwners(target).owners());
+    Document doc = ReadAction.compute(() ->
+            FileDocumentManager.getInstance().getDocument(codeowners.getVirtualFile()));
     assertNotNull(doc);
 
     // Act — edit the document (not the file on disk). The document modification
@@ -196,7 +206,7 @@ public class CodeownersServiceTest {
     WriteCommandAction.runWriteCommandAction(project(), () -> doc.setText("*.java @updated\n"));
 
     // Assert
-    assertEquals(List.of("@updated"), service().resolveOwners(target).owners());
+    assertEquals(List.of("@updated"), resolveOwners(target).owners());
   }
 
   @Test
@@ -206,7 +216,7 @@ public class CodeownersServiceTest {
     VirtualFile file = fixture.addFileToProject("Foo.java", "").getVirtualFile();
 
     // Act
-    CodeownersOwnerResolution res = service().resolveOwners(file);
+    CodeownersOwnerResolution res = resolveOwners(file);
 
     // Assert
     assertTrue(res.isEmpty());
