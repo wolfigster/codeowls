@@ -55,6 +55,11 @@
                                        implementationClass="net.wolfig.codeowls.highlighting.CodeownersSyntaxHighlighterFactory"/>
         <colorSettingsPage implementation="net.wolfig.codeowls.settings.CodeownersColorSettingsPage"/>
 
+        <!-- Folding for GitLab section headers -->
+        <lang.foldingBuilder
+                language="CODEOWNERS"
+                implementationClass="net.wolfig.codeowls.folding.CodeownersFoldingBuilder"/>
+
         <!-- Status bar widget that shows the CODEOWNERS owners of the currently selected file. -->
         <statusBarWidgetFactory id="Codeowls.StatusBarWidget"
                                 implementation="net.wolfig.codeowls.statusbar.CodeownersStatusBarWidgetFactory"/>
