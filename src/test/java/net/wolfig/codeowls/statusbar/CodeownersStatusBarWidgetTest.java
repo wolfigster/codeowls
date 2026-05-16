@@ -1,5 +1,6 @@
 package net.wolfig.codeowls.statusbar;
 
+import com.intellij.icons.AllIcons;
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture;
 import com.intellij.testFramework.fixtures.IdeaProjectTestFixture;
 import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory;
@@ -10,7 +11,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.awt.*;
+import javax.swing.*;
 import java.lang.reflect.Field;
 import java.util.List;
 
@@ -18,15 +19,15 @@ import static org.junit.Assert.*;
 
 /**
  * Tests for {@link CodeownersStatusBarWidget} — covers the
- * {@link com.intellij.openapi.wm.StatusBarWidget.TextPresentation} surface:
- * widget id, alignment, presentation self-binding, plus the text and tooltip
+ * {@link com.intellij.openapi.wm.StatusBarWidget.IconPresentation} surface:
+ * widget id, icon, presentation self-binding, click consumer, and tooltip
  * formatting for empty, single-rule, many-owner, and HTML-unsafe inputs.
  *
  * <p>The widget exposes its formatting, which read a private {@code resolution} field
  * written by an async background read action. The async pipeline isn't worth
  * replicating in unit tests, so the formatting cases use reflection to seed
  * {@code resolution} with a deterministic value — that's still a behavioral
- * check of the observable {@code TextPresentation} output, just with a
+ * check of the observable {@code IconPresentation} output, just with a
  * controlled input instead of one parsed out of an in-memory CODEOWNERS file.
  *
  * <p>Tests follow the Arrange / Act / Assert pattern.
@@ -96,17 +97,8 @@ public class CodeownersStatusBarWidgetTest {
     // Act
     Object presentation = w.getPresentation();
 
-    // Assert — widget implements TextPresentation; getPresentation should return `this`.
+    // Assert — widget implements IconPresentation; getPresentation should return `this`.
     assertSame(w, presentation);
-  }
-
-  @Test
-  public void getAlignment_default_returnsLeftAlignment() {
-    // Act
-    float alignment = widget().getAlignment();
-
-    // Assert
-    assertEquals(Component.LEFT_ALIGNMENT, alignment, 0f);
   }
 
   @Test
@@ -118,55 +110,30 @@ public class CodeownersStatusBarWidgetTest {
     assertNotNull(consumer);
   }
 
-  // -- getText -------------------------------------------------------------
+  // -- getIcon -------------------------------------------------------------
 
   @Test
-  public void getText_noResolution_returnsNoCodeownersFallback() {
+  public void getIcon_default_returnsUsersIcon() {
     // Act
-    String text = widget().getText();
+    Icon icon = widget().getIcon();
 
-    // Assert — initial state shown when no rule matches the current file.
-    assertEquals("No CODEOWNERS", text);
+    // Assert — the people-group glyph from the bundled AllIcons set; the
+    // widget surfaces it regardless of resolution state so the tooltip remains
+    // the source of truth for owner detail.
+    assertSame(AllIcons.CodeWithMe.Users, icon);
   }
 
   @Test
-  public void getText_singleOwner_returnsGlyphPrefixedOwner() {
-    // Arrange
+  public void getIcon_withResolution_stillReturnsCwmUsersIcon() {
+    // Arrange — having owners resolved must not swap the icon.
     CodeownersStatusBarWidget w = widget();
-    setResolution(w, resolution("*.java", List.of("@alice")));
+    setResolution(w, resolution("*.java", List.of("@alice", "@bob")));
 
     // Act
-    String text = w.getText();
+    Icon icon = w.getIcon();
 
     // Assert
-    assertEquals("👥 @alice", text);
-  }
-
-  @Test
-  public void getText_threeOwners_returnsAllSeparatedBySpace() {
-    // Arrange — at the visible cap; no overflow suffix.
-    CodeownersStatusBarWidget w = widget();
-    setResolution(w, resolution("*.java", List.of("@alice", "@bob", "@carol")));
-
-    // Act
-    String text = w.getText();
-
-    // Assert
-    assertEquals("👥 @alice @bob @carol", text);
-  }
-
-  @Test
-  public void getText_moreThanThreeOwners_returnsFirstThreeAndOverflowCount() {
-    // Arrange
-    CodeownersStatusBarWidget w = widget();
-    setResolution(w, resolution("*.java",
-            List.of("@a", "@b", "@c", "@d", "@e")));
-
-    // Act
-    String text = w.getText();
-
-    // Assert
-    assertEquals("👥 @a @b @c +2", text);
+    assertSame(AllIcons.CodeWithMe.Users, icon);
   }
 
   // -- getTooltipText ------------------------------------------------------

@@ -1,5 +1,6 @@
 package net.wolfig.codeowls.statusbar;
 
+import com.intellij.icons.AllIcons;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ModalityState;
 import com.intellij.openapi.application.ReadAction;
@@ -26,7 +27,7 @@ import net.wolfig.codeowls.matcher.CodeownersRule;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.awt.*;
+import javax.swing.*;
 import java.awt.event.MouseEvent;
 import java.util.List;
 
@@ -50,13 +51,7 @@ import java.util.List;
  * line; if no rule matches but a CODEOWNERS file exists, it opens the file
  * at the top.
  */
-public final class CodeownersStatusBarWidget implements StatusBarWidget, StatusBarWidget.TextPresentation {
-
-  // Owner-group emoji prefix. Status bar fonts in modern IntelliJ render this on macOS,
-  // Linux and Windows. If a future font ever lacks emoji glyphs the worst case is a
-  // square-box prefix — text still readable.
-  private static final String OWNER_GLYPH = "👥 ";
-  private static final int MAX_VISIBLE_OWNERS = 3;
+public final class CodeownersStatusBarWidget implements StatusBarWidget, StatusBarWidget.IconPresentation {
 
   private final Project project;
   private StatusBar statusBar;
@@ -162,28 +157,11 @@ public final class CodeownersStatusBarWidget implements StatusBarWidget, StatusB
     statusBar = null;
   }
 
-  // ---- TextPresentation ----
+  // ---- IconPresentation ----
 
   @Override
-  public @NotNull String getText() {
-    CodeownersOwnerResolution res = resolution;
-    if (res.isEmpty()) return "No CODEOWNERS";
-    List<String> owners = res.owners();
-    StringBuilder sb = new StringBuilder(OWNER_GLYPH);
-    int shown = Math.min(owners.size(), MAX_VISIBLE_OWNERS);
-    for (int i = 0; i < shown; i++) {
-      if (i > 0) sb.append(' ');
-      sb.append(owners.get(i));
-    }
-    if (owners.size() > MAX_VISIBLE_OWNERS) {
-      sb.append(" +").append(owners.size() - MAX_VISIBLE_OWNERS);
-    }
-    return sb.toString();
-  }
-
-  @Override
-  public float getAlignment() {
-    return Component.LEFT_ALIGNMENT;
+  public @NotNull Icon getIcon() {
+    return AllIcons.CodeWithMe.Users;
   }
 
   @Override
