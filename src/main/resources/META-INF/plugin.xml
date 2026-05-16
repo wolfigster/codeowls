@@ -13,25 +13,25 @@
     <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-description -->
     <description><![CDATA[
-        Syntax highlighting for <code>CODEOWNERS</code> files used by GitHub, GitLab, and Bitbucket.<br>
+        First-class editor support for <code>CODEOWNERS</code> files used by GitHub, GitLab, and Bitbucket.<br>
         <br>
-        Recognises:
+        <b>Features</b>
         <ul>
-          <li>Comments (<code># …</code>)</li>
-          <li>File-glob patterns, including GitLab negation patterns (<code>!/config/**/*.rb</code>)</li>
-          <li>User owners (<code>@alice</code>), team owners (<code>@org/team</code>),
-              role owners (<code>@@maintainer</code>, <code>@@developer</code>, <code>@@developers</code>),
-              and e-mail owners (<code>alice@example.com</code>)</li>
-          <li>GitLab section headers (<code>[Backend]</code>), optional sections
-              (<code>^[Backend]</code>), and approval counts (<code>[2]</code>)</li>
-          <li>Default owners on the same line as a section header
-              (<code>[Backend][2] @org/backend @alice</code>)</li>
+          <li><b>Syntax highlighting</b> for comments, glob patterns (including GitLab
+              negation <code>!/config/**/*.rb</code>), user / team / role / e-mail owners,
+              GitLab section headers, optional sections, and approval counts &mdash;
+              colors configurable under <em>Settings → Editor → Color Scheme → CODEOWNERS</em>.</li>
+          <li><b>Status bar widget</b> showing the owners of the currently selected file;
+              click to jump to the matching rule in the CODEOWNERS file.</li>
+          <li><b>Inlay hints</b> displaying the number of files each glob rule matches in
+              the current project; toggle via <em>Find Action → Toggle CODEOWNERS File Count Hints</em>.</li>
+          <li><b>Path completion</b> while typing glob patterns and <b>owner completion</b>
+              drawn from owners already declared in the file.</li>
+          <li><b>Code folding</b> for GitLab section blocks.</li>
         </ul>
         Matches any file literally named <code>CODEOWNERS</code> &mdash; including
         <code>.github/CODEOWNERS</code>, <code>.gitlab/CODEOWNERS</code>, <code>docs/CODEOWNERS</code>,
-        and a repository-root <code>CODEOWNERS</code>.<br>
-        <br>
-        Colors are configurable under <em>Settings → Editor → Color Scheme → CODEOWNERS</em>.
+        and a repository-root <code>CODEOWNERS</code>.
         ]]></description>
 
     <!-- Product and plugin compatibility requirements.
