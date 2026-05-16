@@ -67,6 +67,7 @@
         <!-- Path and owner completion inside CODEOWNERS rules. -->
         <completion.contributor language="CODEOWNERS"
                                 implementationClass="net.wolfig.codeowls.completion.CodeownersCompletionContributor"/>
+        <typedHandler implementation="net.wolfig.codeowls.completion.CodeownersTypedHandler"/>
 
         <!-- End-of-line inlay hints showing "N files" for each glob CODEOWNERS rule. -->
         <codeInsight.declarativeInlayProvider

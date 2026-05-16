@@ -2,9 +2,10 @@ package net.wolfig.codeowls.completion;
 
 import com.intellij.codeInsight.completion.CompletionContributor;
 import com.intellij.codeInsight.completion.CompletionType;
+import com.intellij.patterns.ElementPattern;
 import com.intellij.patterns.PlatformPatterns;
 import com.intellij.psi.PsiElement;
-import org.jetbrains.annotations.NotNull;
+import net.wolfig.codeowls.lang.CodeownersLanguage;
 
 /**
  * Entry point for CODEOWNERS completion. The contributor delegates to two
@@ -15,28 +16,15 @@ import org.jetbrains.annotations.NotNull;
  */
 public final class CodeownersCompletionContributor extends CompletionContributor {
 
-  public CodeownersCompletionContributor() {
-    extend(CompletionType.BASIC,
-            PlatformPatterns.psiElement().inFile(PlatformPatterns.psiFile()
-                    .withLanguage(net.wolfig.codeowls.lang.CodeownersLanguage.INSTANCE)),
-            new CodeownersPathCompletionProvider());
-    extend(CompletionType.BASIC,
-            PlatformPatterns.psiElement().inFile(PlatformPatterns.psiFile()
-                    .withLanguage(net.wolfig.codeowls.lang.CodeownersLanguage.INSTANCE)),
-            new CodeownersOwnerCompletionProvider());
-    extend(CompletionType.BASIC,
-            PlatformPatterns.psiElement().inFile(PlatformPatterns.psiFile()
-                    .withLanguage(net.wolfig.codeowls.lang.CodeownersLanguage.INSTANCE)),
-            new CodeownersSectionCompletionProvider());
-  }
+  private static final ElementPattern<PsiElement> CODEOWNERS_ELEMENT =
+          PlatformPatterns.psiElement().inFile(
+                  PlatformPatterns.psiFile()
+                          .withLanguage(CodeownersLanguage.INSTANCE)
+          );
 
-  /**
-   * Open the lookup popup automatically when the user types {@code @} so the
-   * owner suggestions appear without having to press Ctrl+Space first.
-   */
-  @Override
-  public boolean invokeAutoPopup(@NotNull PsiElement position, char typedChar) {
-    return typedChar == '@'
-            && position.getContainingFile().getLanguage().is(net.wolfig.codeowls.lang.CodeownersLanguage.INSTANCE);
+  public CodeownersCompletionContributor() {
+    extend(CompletionType.BASIC, CODEOWNERS_ELEMENT, new CodeownersPathCompletionProvider());
+    extend(CompletionType.BASIC, CODEOWNERS_ELEMENT, new CodeownersOwnerCompletionProvider());
+    extend(CompletionType.BASIC, CODEOWNERS_ELEMENT, new CodeownersSectionCompletionProvider());
   }
 }

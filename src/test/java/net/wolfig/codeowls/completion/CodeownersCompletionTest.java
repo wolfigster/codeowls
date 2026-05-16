@@ -1,8 +1,9 @@
 package net.wolfig.codeowls.completion;
 
 import com.intellij.codeInsight.completion.CompletionType;
+import com.intellij.codeInsight.editorActions.TypedHandlerDelegate;
 import com.intellij.codeInsight.lookup.LookupElement;
-import com.intellij.openapi.application.ReadAction;
+import com.intellij.testFramework.EdtTestUtil;
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture;
 import com.intellij.testFramework.fixtures.IdeaProjectTestFixture;
 import com.intellij.testFramework.fixtures.IdeaTestFixtureFactory;
@@ -407,25 +408,27 @@ public class CodeownersCompletionTest {
     }
   }
 
-  // -- contributor wiring ---------------------------------------------------
+  // -- typed-handler wiring -------------------------------------------------
 
   @Test
-  public void contributor_invokeAutoPopup_returnsTrueOnlyForAt() {
-    // Arrange — exercise the auto-popup hook directly to lock in the @ trigger.
-    // Any PsiElement inside the CODEOWNERS file works — the contributor checks
-    // the file's language, not the specific element type.
+  public void typedHandler_atSymbol_stopsAndSchedulesAutoPopup_otherCharsContinue() {
+    // Arrange — auto-popup on '@' moved out of the contributor onto a dedicated
+    // TypedHandlerDelegate. Drive checkAutoPopup directly so the trigger char
+    // set stays locked in.
     fixture.configureByText(net.wolfig.codeowls.lang.CodeownersFileType.INSTANCE,
-            "/src/Foo.java @owner");
-    com.intellij.psi.PsiElement position = ReadAction.compute(() -> fixture.getFile());
-    assertNotNull(position);
-    CodeownersCompletionContributor contributor = new CodeownersCompletionContributor();
+            "/src/Foo.java <caret>");
+    CodeownersTypedHandler handler = new CodeownersTypedHandler();
 
-    // Act
-    boolean atTriggers = ReadAction.compute(() -> contributor.invokeAutoPopup(position, '@'));
-    boolean spaceTriggers = ReadAction.compute(() -> contributor.invokeAutoPopup(position, ' '));
+    // Act — AutoPopupController.scheduleAutoPopup asserts EDT, so the call
+    // must run on the platform's event-dispatch thread.
+    TypedHandlerDelegate.Result atResult = EdtTestUtil.runInEdtAndGet(() ->
+            handler.checkAutoPopup('@', fixture.getProject(), fixture.getEditor(), fixture.getFile()));
+    TypedHandlerDelegate.Result spaceResult = EdtTestUtil.runInEdtAndGet(() ->
+            handler.checkAutoPopup(' ', fixture.getProject(), fixture.getEditor(), fixture.getFile()));
 
-    // Assert
-    assertTrue(atTriggers);
-    assertFalse(spaceTriggers);
+    // Assert — '@' is handled (popup scheduled, no further delegates run);
+    // anything else passes through untouched.
+    assertEquals(TypedHandlerDelegate.Result.STOP, atResult);
+    assertEquals(TypedHandlerDelegate.Result.CONTINUE, spaceResult);
   }
 }
