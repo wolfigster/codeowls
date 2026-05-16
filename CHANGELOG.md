@@ -32,7 +32,5 @@
 - Code folding for GitLab section blocks.
 
 [Unreleased]: https://github.com/wolfigster/codeowls/compare/1.0.1...HEAD
-
 [1.0.1]: https://github.com/wolfigster/codeowls/compare/1.0.0...1.0.1
-
 [1.0.0]: https://github.com/wolfigster/codeowls/releases/tag/1.0.0
