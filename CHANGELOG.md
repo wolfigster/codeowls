@@ -31,8 +31,8 @@
 - Path completion for glob patterns and owner completion drawn from owners already declared in the file.
 - Code folding for GitLab section blocks.
 
-[Unreleased]: https://github.com/wolfig/codeowls/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/wolfigster/codeowls/compare/1.0.1...HEAD
 
-[1.0.1]: https://github.com/wolfig/codeowls/compare/v1.0.0...v1.0.1
+[1.0.1]: https://github.com/wolfigster/codeowls/compare/1.0.0...1.0.1
 
-[1.0.0]: https://github.com/wolfig/codeowls/releases/tag/v1.0.0
+[1.0.0]: https://github.com/wolfigster/codeowls/releases/tag/1.0.0
