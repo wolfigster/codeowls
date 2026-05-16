@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-05-16
+
+### Changed
+
+- Auto-popup of owner completion on `@` moved from the completion contributor into a dedicated `TypedHandlerDelegate`,
+  aligning with the platform's recommended trigger path. No user-visible behavior change.
+
 ## [1.0.0] - 2026-05-16
 
 ### Added
@@ -24,6 +31,8 @@
 - Path completion for glob patterns and owner completion drawn from owners already declared in the file.
 - Code folding for GitLab section blocks.
 
-[Unreleased]: https://github.com/wolfig/codeowls/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/wolfig/codeowls/compare/v1.0.1...HEAD
+
+[1.0.1]: https://github.com/wolfig/codeowls/compare/v1.0.0...v1.0.1
 
 [1.0.0]: https://github.com/wolfig/codeowls/releases/tag/v1.0.0
