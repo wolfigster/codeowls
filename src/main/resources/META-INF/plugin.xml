@@ -26,6 +26,8 @@
               to get confidence-ranked owner suggestions you can add to CODEOWNERS in one click.</li>
           <li><b>Inlay hints</b> displaying the number of files each glob rule matches in
               the current project; toggle via <em>Find Action → Toggle CODEOWNERS File Count Hints</em>.</li>
+          <li><b>Matched-file navigation</b> &mdash; a gutter icon on each wildcard / directory
+              rule lists the project files it matches; pick one to jump to it.</li>
           <li><b>Path completion</b> while typing glob patterns and <b>owner completion</b>
               drawn from owners already declared in the file.</li>
           <li><b>Owner navigation</b> &mdash; Ctrl/Cmd+Click a user or team owner to open
@@ -83,6 +85,11 @@
         <!-- Rewrite CODEOWNERS rule paths when a file/directory is moved or renamed. -->
         <refactoring.elementListenerProvider
                 implementation="net.wolfig.codeowls.refactoring.CodeownersMoveRenameListenerProvider"/>
+
+        <!-- Gutter icon on wildcard/directory rules listing the files they match. -->
+        <codeInsight.lineMarkerProvider
+                language="CODEOWNERS"
+                implementationClass="net.wolfig.codeowls.navigation.CodeownersMatchedFilesLineMarkerProvider"/>
 
         <!-- Flags unnecessary rules: patterns that match no project file, and
              rules fully shadowed by a later rule. -->

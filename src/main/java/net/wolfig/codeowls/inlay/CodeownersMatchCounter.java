@@ -126,7 +126,7 @@ public final class CodeownersMatchCounter {
    * from the inlay hint — they're either guaranteed to match a single file
    * or, in practice, almost always do.
    */
-  static boolean isGlobOrDirectoryPattern(@NotNull String pattern) {
+  public static boolean isGlobOrDirectoryPattern(@NotNull String pattern) {
     if (pattern.isEmpty()) return false;
     if (pattern.endsWith("/")) return true;
     for (int i = 0; i < pattern.length(); i++) {
