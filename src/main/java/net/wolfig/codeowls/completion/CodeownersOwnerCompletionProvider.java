@@ -3,9 +3,12 @@ package net.wolfig.codeowls.completion;
 import com.intellij.codeInsight.completion.CompletionParameters;
 import com.intellij.codeInsight.completion.CompletionProvider;
 import com.intellij.codeInsight.completion.CompletionResultSet;
+import com.intellij.codeInsight.completion.PlainPrefixMatcher;
 import com.intellij.codeInsight.lookup.LookupElementBuilder;
+import com.intellij.icons.AllIcons;
 import com.intellij.openapi.editor.Document;
 import com.intellij.util.ProcessingContext;
+import javax.swing.Icon;
 import net.wolfig.codeowls.lang.CodeownersLanguage;
 import org.jetbrains.annotations.NotNull;
 
@@ -54,12 +57,31 @@ public final class CodeownersOwnerCompletionProvider extends CompletionProvider<
     CodeownersCompletionContext context = CodeownersCompletionContext.fromLinePrefix(linePrefix);
     if (context.segment() != CodeownersCompletionContext.Segment.OWNER) return;
 
-    CompletionResultSet scoped = result.withPrefixMatcher(context.typedSegmentText());
+    // Owner tokens start with characters IntelliJ's default CamelHumpMatcher
+    // treats as hard separators ({@code @}, {@code /}). With that matcher,
+    // typing just {@code @} can drop team-style candidates like
+    // {@code @org/team} because the slash also breaks its hump-matching
+    // heuristic. PlainPrefixMatcher does a case-insensitive startsWith, which
+    // is what users expect when typing an owner prefix.
+    CompletionResultSet scoped = result.withPrefixMatcher(
+            new PlainPrefixMatcher(context.typedSegmentText()));
     for (CodeownersOwnerCollector.OwnerCandidate candidate : collector.collect(params.getOriginalFile())) {
       // Don't echo back exactly what the user already typed.
       if (candidate.owner().equals(context.typedSegmentText())) continue;
       scoped.addElement(LookupElementBuilder.create(candidate.owner())
+              .withIcon(iconFor(candidate.owner()))
               .withTypeText(candidate.source(), true));
     }
+  }
+
+  /**
+   * Teams ({@code @org/team}) and GitLab roles ({@code @@maintainer}) both
+   * represent groups of people and get the multi-user icon. Bare usernames and
+   * email addresses are individuals.
+   */
+  private static @NotNull Icon iconFor(@NotNull String owner) {
+    if (owner.startsWith("@@")) return AllIcons.CodeWithMe.Users;
+    if (owner.contains("/")) return AllIcons.CodeWithMe.Users;
+    return AllIcons.General.User;
   }
 }

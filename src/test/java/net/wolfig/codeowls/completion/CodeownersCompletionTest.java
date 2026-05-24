@@ -221,15 +221,86 @@ public class CodeownersCompletionTest {
   }
 
   @Test
-  public void ownerCompletion_inEmptyCodeownersFile_returnsNoSuggestions() {
-    // Arrange
+  public void ownerCompletion_inEmptyCodeownersFile_suggestsBuiltinRoles() {
+    // Arrange — no other sources contribute (no other owners in the file, Git
+    // cache cleared in setUp), so only the built-in GitLab roles remain.
     String content = "/src/Foo.java <caret>";
 
     // Act
     List<String> suggestions = completeAndCollect(content);
 
-    // Assert — no other owners in the file, no other sources wired in v1.
-    assertTrue("expected no owner suggestions, got " + suggestions, suggestions.isEmpty());
+    // Assert
+    assertTrue("expected @@developer in " + suggestions, suggestions.contains("@@developer"));
+    assertTrue("expected @@maintainer in " + suggestions, suggestions.contains("@@maintainer"));
+    assertTrue("expected @@owner in " + suggestions, suggestions.contains("@@owner"));
+  }
+
+  @Test
+  public void ownerCompletion_singleAtPrefix_includesTeamStyleOwners() {
+    // Arrange — team owners contain a slash, which IntelliJ's default
+    // CamelHumpMatcher treats as a hard separator. Typing just '@' must still
+    // surface them, so the provider uses a plain startsWith matcher.
+    String content =
+            """
+                    *.md @team/frontend
+                    *.java @backend
+                    /src/Foo.java @<caret>
+                    """;
+
+    // Act
+    List<String> suggestions = completeAndCollect(content);
+
+    // Assert
+    assertTrue("expected @team/frontend in " + suggestions,
+            suggestions.contains("@team/frontend"));
+    assertTrue("expected @backend in " + suggestions, suggestions.contains("@backend"));
+  }
+
+  @Test
+  public void ownerCompletion_teamPrefix_filtersTeamCandidates() {
+    // Arrange — typing through a team prefix that includes the slash still
+    // matches the expected candidate, so completion stays useful while drilling
+    // into an org's team namespace.
+    String content =
+            """
+                    *.md @team/frontend
+                    *.java @team/backend
+                    *.ts @docs
+                    /src/Foo.java @team/f<caret>
+                    """;
+    fixture.configureByText(net.wolfig.codeowls.lang.CodeownersFileType.INSTANCE, content);
+
+    // Act
+    fixture.complete(CompletionType.BASIC);
+
+    // Assert — only @team/frontend matches the prefix, so it's auto-inserted.
+    fixture.checkResult(
+            """
+                    *.md @team/frontend
+                    *.java @team/backend
+                    *.ts @docs
+                    /src/Foo.java @team/frontend<caret>
+                    """);
+  }
+
+  @Test
+  public void ownerCompletion_doubleAtPrefix_filtersToGitlabRoles() {
+    // Arrange — once the user types "@@", only the role candidates match.
+    String content =
+            """
+                    *.md @docs-team
+                    /src/Foo.java @@<caret>
+                    """;
+
+    // Act
+    List<String> suggestions = completeAndCollect(content);
+
+    // Assert
+    assertTrue("expected @@developer in " + suggestions, suggestions.contains("@@developer"));
+    assertTrue("expected @@maintainer in " + suggestions, suggestions.contains("@@maintainer"));
+    assertTrue("expected @@owner in " + suggestions, suggestions.contains("@@owner"));
+    assertFalse("@docs-team should not match prefix '@@': " + suggestions,
+            suggestions.contains("@docs-team"));
   }
 
   // -- mode separation ------------------------------------------------------

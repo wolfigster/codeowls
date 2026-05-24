@@ -25,10 +25,11 @@ public final class CodeownersOwnerCollector {
   public static final String SOURCE_CURRENT_FILE = "already used in CODEOWNERS";
   public static final String SOURCE_GIT_HISTORY = "from Git history";
   public static final String SOURCE_PLUGIN_SETTINGS = "from plugin settings";
+  public static final String SOURCE_BUILTIN_ROLE = "GitLab role";
   private final List<Source> sources;
 
   public CodeownersOwnerCollector() {
-    this(List.of(new CurrentFileSource(), new CodeownersGitOwnerSource()));
+    this(List.of(new CurrentFileSource(), new CodeownersGitOwnerSource(), new BuiltinRoleSource()));
   }
 
   /**
@@ -82,6 +83,24 @@ public final class CodeownersOwnerCollector {
         }
       }
       return out;
+    }
+  }
+
+  /**
+   * Surfaces the GitLab project roles ({@code @@developer}, {@code @@maintainer},
+   * {@code @@owner}) as completion candidates. They're always available so
+   * users don't need to remember the exact spelling or that two {@code @} signs
+   * are required.
+   */
+  public static final class BuiltinRoleSource implements Source {
+    private static final List<OwnerCandidate> ROLES = List.of(
+            new OwnerCandidate("@@developer", SOURCE_BUILTIN_ROLE),
+            new OwnerCandidate("@@maintainer", SOURCE_BUILTIN_ROLE),
+            new OwnerCandidate("@@owner", SOURCE_BUILTIN_ROLE));
+
+    @Override
+    public @NotNull List<OwnerCandidate> collect(@NotNull PsiFile codeownersFile) {
+      return ROLES;
     }
   }
 }

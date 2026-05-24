@@ -125,7 +125,7 @@ public class CodeownersGitOwnerSourceTest {
             ReadAction.compute(() -> collector.collect(file));
 
     // Assert
-    assertEquals(List.of("@alice", "dan@example.com"), ownerStrings(candidates));
+    assertEquals(List.of("@alice", "dan@example.com", "@@developer", "@@maintainer", "@@owner"), ownerStrings(candidates));
     assertEquals(CodeownersOwnerCollector.SOURCE_CURRENT_FILE, candidates.get(0).source());
     assertEquals(CodeownersOwnerCollector.SOURCE_GIT_HISTORY, candidates.get(1).source());
   }

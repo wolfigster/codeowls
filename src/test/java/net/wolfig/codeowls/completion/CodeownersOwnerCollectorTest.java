@@ -58,14 +58,16 @@ public class CodeownersOwnerCollectorTest {
 
   @Test
   public void collect_currentFileWithSeveralRules_returnsEveryOwnerOncePerSource() {
-    // Arrange
+    // Arrange — pin to the CurrentFileSource only so the test stays focused on
+    // file-derived candidates and isn't perturbed by built-in roles or Git.
     PsiFile codeowners = addCodeownersFile(
             """
                     *.java @backend @alice
                     docs/ @docs-team
                     *.md @alice
                     """);
-    CodeownersOwnerCollector collector = new CodeownersOwnerCollector();
+    CodeownersOwnerCollector collector = new CodeownersOwnerCollector(
+            List.of(new CodeownersOwnerCollector.CurrentFileSource()));
 
     // Act
     List<CodeownersOwnerCollector.OwnerCandidate> candidates =
@@ -79,8 +81,25 @@ public class CodeownersOwnerCollectorTest {
   }
 
   @Test
-  public void collect_emptyFile_returnsNoCandidates() {
-    // Arrange
+  public void collect_emptyFileWithCurrentFileSourceOnly_returnsNoCandidates() {
+    // Arrange — same isolation as above so the assertion is about the file
+    // source, not the always-available built-in roles.
+    PsiFile codeowners = addCodeownersFile("");
+    CodeownersOwnerCollector collector = new CodeownersOwnerCollector(
+            List.of(new CodeownersOwnerCollector.CurrentFileSource()));
+
+    // Act
+    List<CodeownersOwnerCollector.OwnerCandidate> candidates =
+            com.intellij.openapi.application.ReadAction.compute(() -> collector.collect(codeowners));
+
+    // Assert
+    assertTrue(candidates.isEmpty());
+  }
+
+  @Test
+  public void collect_defaultCollector_includesBuiltinGitlabRoles() {
+    // Arrange — default sources always include the GitLab role list so users
+    // can pick @@developer / @@maintainer / @@owner without remembering them.
     PsiFile codeowners = addCodeownersFile("");
     CodeownersOwnerCollector collector = new CodeownersOwnerCollector();
 
@@ -89,7 +108,10 @@ public class CodeownersOwnerCollectorTest {
             com.intellij.openapi.application.ReadAction.compute(() -> collector.collect(codeowners));
 
     // Assert
-    assertTrue(candidates.isEmpty());
+    assertEquals(List.of("@@developer", "@@maintainer", "@@owner"), ownerStrings(candidates));
+    for (CodeownersOwnerCollector.OwnerCandidate c : candidates) {
+      assertEquals(CodeownersOwnerCollector.SOURCE_BUILTIN_ROLE, c.source());
+    }
   }
 
   @Test
