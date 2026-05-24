@@ -8,9 +8,10 @@ import com.intellij.codeInsight.lookup.LookupElementBuilder;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.editor.Document;
 import com.intellij.util.ProcessingContext;
-import javax.swing.Icon;
 import net.wolfig.codeowls.lang.CodeownersLanguage;
 import org.jetbrains.annotations.NotNull;
+
+import javax.swing.*;
 
 /**
  * Completion provider for the owner segment of CODEOWNERS rules.
@@ -40,6 +41,17 @@ public final class CodeownersOwnerCompletionProvider extends CompletionProvider<
    */
   public CodeownersOwnerCompletionProvider(@NotNull CodeownersOwnerCollector collector) {
     this.collector = collector;
+  }
+
+  /**
+   * Teams ({@code @org/team}) and GitLab roles ({@code @@maintainer}) both
+   * represent groups of people and get the multi-user icon. Bare usernames and
+   * email addresses are individuals.
+   */
+  private static @NotNull Icon iconFor(@NotNull String owner) {
+    if (owner.startsWith("@@")) return AllIcons.CodeWithMe.Users;
+    if (owner.contains("/")) return AllIcons.CodeWithMe.Users;
+    return AllIcons.General.User;
   }
 
   @Override
@@ -72,16 +84,5 @@ public final class CodeownersOwnerCompletionProvider extends CompletionProvider<
               .withIcon(iconFor(candidate.owner()))
               .withTypeText(candidate.source(), true));
     }
-  }
-
-  /**
-   * Teams ({@code @org/team}) and GitLab roles ({@code @@maintainer}) both
-   * represent groups of people and get the multi-user icon. Bare usernames and
-   * email addresses are individuals.
-   */
-  private static @NotNull Icon iconFor(@NotNull String owner) {
-    if (owner.startsWith("@@")) return AllIcons.CodeWithMe.Users;
-    if (owner.contains("/")) return AllIcons.CodeWithMe.Users;
-    return AllIcons.General.User;
   }
 }

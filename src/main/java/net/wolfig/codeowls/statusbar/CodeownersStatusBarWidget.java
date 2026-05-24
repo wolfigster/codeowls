@@ -175,7 +175,7 @@ public final class CodeownersStatusBarWidget implements StatusBarWidget, StatusB
     CodeownersRule rule = res.rule();
     if (rule == null) return "No CODEOWNERS rule matches this file";
     String codeowners = !rule.owners().isEmpty() ?
-      StringUtil.escapeXmlEntities(String.join(", ", rule.owners())) : "Unknown";
+            StringUtil.escapeXmlEntities(String.join(", ", rule.owners())) : "Unknown";
     return "<html>" +
             "<b>Owners:</b> " + codeowners + "<br>" +
             "<b>Pattern:</b> <em>" + StringUtil.escapeXmlEntities(rule.pattern()) + "</em><br>" +

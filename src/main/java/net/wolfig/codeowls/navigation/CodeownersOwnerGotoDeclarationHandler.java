@@ -25,6 +25,10 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class CodeownersOwnerGotoDeclarationHandler implements GotoDeclarationHandler {
 
+  private static boolean isOwner(@Nullable IElementType type) {
+    return type == CodeownersTokenTypes.USER_OWNER || type == CodeownersTokenTypes.TEAM_OWNER;
+  }
+
   @Override
   public PsiElement @Nullable [] getGotoDeclarationTargets(@Nullable PsiElement sourceElement,
                                                            int offset,
@@ -41,9 +45,5 @@ public final class CodeownersOwnerGotoDeclarationHandler implements GotoDeclarat
     if (url == null) return null;
 
     return new PsiElement[]{new OpenUrlInBrowserElement(sourceElement, url)};
-  }
-
-  private static boolean isOwner(@Nullable IElementType type) {
-    return type == CodeownersTokenTypes.USER_OWNER || type == CodeownersTokenTypes.TEAM_OWNER;
   }
 }

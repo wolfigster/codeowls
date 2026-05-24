@@ -20,8 +20,6 @@ import java.util.Locale;
  */
 final class RemoteUrlResolver {
 
-  enum Platform {GITHUB, GITLAB, BITBUCKET, GENERIC}
-
   private final String host;
   private final Platform platform;
 
@@ -38,27 +36,6 @@ final class RemoteUrlResolver {
     String host = extractHost(remoteUrl);
     if (host == null) return null;
     return new RemoteUrlResolver(host, platformOf(host));
-  }
-
-  /**
-   * @return the web page for {@code ownerToken} on this host, or {@code null}
-   * when the token is not a user or team (roles, e-mails, blanks).
-   */
-  @Nullable String urlForOwner(@Nullable String ownerToken) {
-    if (ownerToken == null) return null;
-    String name = ownerToken.startsWith("@") ? ownerToken.substring(1) : ownerToken;
-    // "@@role" leaves a leading '@' after stripping one; e-mail owners contain '@'.
-    if (name.isEmpty() || name.indexOf('@') >= 0 || name.startsWith("/")) return null;
-
-    if (platform == Platform.GITHUB && name.indexOf('/') >= 0) {
-      // GitHub teams live under the org, not the namespace path.
-      String org = name.substring(0, name.indexOf('/'));
-      String team = name.substring(name.lastIndexOf('/') + 1);
-      if (org.isEmpty() || team.isEmpty()) return null;
-      return "https://" + host + "/orgs/" + org + "/teams/" + team;
-    }
-    // Users on every platform, and GitLab/Bitbucket groups, share the namespace path.
-    return "https://" + host + "/" + name;
   }
 
   private static @NotNull Platform platformOf(@NotNull String host) {
@@ -107,4 +84,27 @@ final class RemoteUrlResolver {
     }
     return null;
   }
+
+  /**
+   * @return the web page for {@code ownerToken} on this host, or {@code null}
+   * when the token is not a user or team (roles, e-mails, blanks).
+   */
+  @Nullable String urlForOwner(@Nullable String ownerToken) {
+    if (ownerToken == null) return null;
+    String name = ownerToken.startsWith("@") ? ownerToken.substring(1) : ownerToken;
+    // "@@role" leaves a leading '@' after stripping one; e-mail owners contain '@'.
+    if (name.isEmpty() || name.indexOf('@') >= 0 || name.startsWith("/")) return null;
+
+    if (platform == Platform.GITHUB && name.indexOf('/') >= 0) {
+      // GitHub teams live under the org, not the namespace path.
+      String org = name.substring(0, name.indexOf('/'));
+      String team = name.substring(name.lastIndexOf('/') + 1);
+      if (org.isEmpty() || team.isEmpty()) return null;
+      return "https://" + host + "/orgs/" + org + "/teams/" + team;
+    }
+    // Users on every platform, and GitLab/Bitbucket groups, share the namespace path.
+    return "https://" + host + "/" + name;
+  }
+
+  enum Platform {GITHUB, GITLAB, BITBUCKET, GENERIC}
 }

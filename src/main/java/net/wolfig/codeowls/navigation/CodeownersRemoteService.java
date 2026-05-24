@@ -40,54 +40,6 @@ public final class CodeownersRemoteService {
     return project.getService(CodeownersRemoteService.class);
   }
 
-  /**
-   * @return the web page for {@code ownerToken} on the project's Git host, or
-   * {@code null} if there is no remote or the token has no page (role / e-mail).
-   */
-  public @Nullable String ownerUrl(@NotNull String ownerToken) {
-    RemoteUrlResolver resolver = resolver();
-    return resolver == null ? null : resolver.urlForOwner(ownerToken);
-  }
-
-  /**
-   * Test seam — pin the owner → URL mapping to a fixed remote URL, bypassing
-   * the {@code .git/config} read. Mirrors
-   * {@link net.wolfig.codeowls.completion.CodeownersGitContributorService#setCachedContributorsForTesting}.
-   * Pass {@code null} to clear and fall back to disk resolution.
-   */
-  void setRemoteUrlForTesting(@Nullable String remoteUrl) {
-    this.testResolver = remoteUrl == null ? null : RemoteUrlResolver.fromRemoteUrl(remoteUrl);
-  }
-
-  private @Nullable RemoteUrlResolver resolver() {
-    RemoteUrlResolver injected = testResolver;
-    if (injected != null) return injected;
-    if (project.isDisposed()) return null;
-    Path config = locateGitConfig();
-    if (config == null) return null;
-    long mtime = lastModified(config);
-    Cache c = cache;
-    if (c != null && c.config.equals(config) && c.mtime == mtime) return c.resolver;
-    RemoteUrlResolver resolver = RemoteUrlResolver.fromRemoteUrl(readRemoteUrl(config));
-    cache = new Cache(config, mtime, resolver);
-    return resolver;
-  }
-
-  private @Nullable Path locateGitConfig() {
-    String basePath = project.getBasePath();
-    if (basePath == null) return null;
-    Path git = Path.of(basePath, ".git");
-    if (Files.isDirectory(git)) {
-      return regularOrNull(git.resolve("config"));
-    }
-    if (Files.isRegularFile(git)) {
-      // Worktree / submodule: ".git" is a file pointing at the real git dir.
-      Path real = resolveGitdirFile(git);
-      return real == null ? null : regularOrNull(real.resolve("config"));
-    }
-    return null;
-  }
-
   private static @Nullable Path regularOrNull(@NotNull Path path) {
     return Files.isRegularFile(path) ? path : null;
   }
@@ -146,6 +98,54 @@ public final class CodeownersRemoteService {
     } catch (IOException ignored) {
       return -1L;
     }
+  }
+
+  /**
+   * @return the web page for {@code ownerToken} on the project's Git host, or
+   * {@code null} if there is no remote or the token has no page (role / e-mail).
+   */
+  public @Nullable String ownerUrl(@NotNull String ownerToken) {
+    RemoteUrlResolver resolver = resolver();
+    return resolver == null ? null : resolver.urlForOwner(ownerToken);
+  }
+
+  /**
+   * Test seam — pin the owner → URL mapping to a fixed remote URL, bypassing
+   * the {@code .git/config} read. Mirrors
+   * {@link net.wolfig.codeowls.completion.CodeownersGitContributorService#setCachedContributorsForTesting}.
+   * Pass {@code null} to clear and fall back to disk resolution.
+   */
+  void setRemoteUrlForTesting(@Nullable String remoteUrl) {
+    this.testResolver = remoteUrl == null ? null : RemoteUrlResolver.fromRemoteUrl(remoteUrl);
+  }
+
+  private @Nullable RemoteUrlResolver resolver() {
+    RemoteUrlResolver injected = testResolver;
+    if (injected != null) return injected;
+    if (project.isDisposed()) return null;
+    Path config = locateGitConfig();
+    if (config == null) return null;
+    long mtime = lastModified(config);
+    Cache c = cache;
+    if (c != null && c.config.equals(config) && c.mtime == mtime) return c.resolver;
+    RemoteUrlResolver resolver = RemoteUrlResolver.fromRemoteUrl(readRemoteUrl(config));
+    cache = new Cache(config, mtime, resolver);
+    return resolver;
+  }
+
+  private @Nullable Path locateGitConfig() {
+    String basePath = project.getBasePath();
+    if (basePath == null) return null;
+    Path git = Path.of(basePath, ".git");
+    if (Files.isDirectory(git)) {
+      return regularOrNull(git.resolve("config"));
+    }
+    if (Files.isRegularFile(git)) {
+      // Worktree / submodule: ".git" is a file pointing at the real git dir.
+      Path real = resolveGitdirFile(git);
+      return real == null ? null : regularOrNull(real.resolve("config"));
+    }
+    return null;
   }
 
   private record Cache(@NotNull Path config, long mtime, @Nullable RemoteUrlResolver resolver) {
