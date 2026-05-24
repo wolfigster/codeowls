@@ -27,6 +27,8 @@
               the current project; toggle via <em>Find Action → Toggle CODEOWNERS File Count Hints</em>.</li>
           <li><b>Path completion</b> while typing glob patterns and <b>owner completion</b>
               drawn from owners already declared in the file.</li>
+          <li><b>Owner navigation</b> &mdash; Ctrl/Cmd+Click a user or team owner to open
+              their GitHub / GitLab page (resolved from the repository's Git remote) in the browser.</li>
           <li><b>Code folding</b> for GitLab section blocks.</li>
         </ul>
         Matches any file literally named <code>CODEOWNERS</code> &mdash; including
@@ -68,6 +70,10 @@
         <completion.contributor language="CODEOWNERS"
                                 implementationClass="net.wolfig.codeowls.completion.CodeownersCompletionContributor"/>
         <typedHandler implementation="net.wolfig.codeowls.completion.CodeownersTypedHandler"/>
+
+        <!-- Ctrl/Cmd+Click a user or team owner to open their GitHub/GitLab page. -->
+        <gotoDeclarationHandler
+                implementation="net.wolfig.codeowls.navigation.CodeownersOwnerGotoDeclarationHandler"/>
 
         <!-- End-of-line inlay hints showing "N files" for each glob CODEOWNERS rule. -->
         <codeInsight.declarativeInlayProvider
