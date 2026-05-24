@@ -30,6 +30,8 @@
               drawn from owners already declared in the file.</li>
           <li><b>Owner navigation</b> &mdash; Ctrl/Cmd+Click a user or team owner to open
               their GitHub / GitLab page (resolved from the repository's Git remote) in the browser.</li>
+          <li><b>Inspections</b> that warn about unnecessary rules &mdash; patterns matching no
+              project file, and rules fully shadowed by a later rule &mdash; with a quick fix to remove them.</li>
           <li><b>Code folding</b> for GitLab section blocks.</li>
         </ul>
         Matches any file literally named <code>CODEOWNERS</code> &mdash; including
@@ -75,6 +77,16 @@
         <!-- Ctrl/Cmd+Click a user or team owner to open their GitHub/GitLab page. -->
         <gotoDeclarationHandler
                 implementation="net.wolfig.codeowls.navigation.CodeownersOwnerGotoDeclarationHandler"/>
+
+        <!-- Flags unnecessary rules: patterns that match no project file, and
+             rules fully shadowed by a later rule. -->
+        <localInspection
+                language="CODEOWNERS"
+                implementationClass="net.wolfig.codeowls.inspection.CodeownersUnnecessaryRuleInspection"
+                groupName="CODEOWNERS"
+                enabledByDefault="true"
+                level="WARNING" key="inspection.codeowners.unnecessary.rule.display.name"
+                bundle="messages.CodeownersBundle"/>
 
         <!-- End-of-line inlay hints showing "N files" for each glob CODEOWNERS rule. -->
         <codeInsight.declarativeInlayProvider

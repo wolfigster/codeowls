@@ -95,7 +95,7 @@ public final class CodeownersMatchCounter {
    * file under {@code .github/}, {@code .gitlab/}, or {@code docs/} resolves
    * to its grandparent; otherwise its parent.
    */
-  private static @Nullable VirtualFile projectRoot(@Nullable VirtualFile codeownersFile) {
+  public static @Nullable VirtualFile projectRoot(@Nullable VirtualFile codeownersFile) {
     if (codeownersFile == null) return null;
     VirtualFile parent = codeownersFile.getParent();
     if (parent == null) return null;
@@ -112,7 +112,7 @@ public final class CodeownersMatchCounter {
    * forward-slash paths (no leading {@code /}). Ignored build/VCS folders are
    * skipped before recursion. Package-private for tests.
    */
-  static @NotNull List<String> collectProjectFilePaths(@NotNull VirtualFile root) {
+  public static @NotNull List<String> collectProjectFilePaths(@NotNull VirtualFile root) {
     List<String> result = new ArrayList<>();
     walk(root, "", result);
     return result;
