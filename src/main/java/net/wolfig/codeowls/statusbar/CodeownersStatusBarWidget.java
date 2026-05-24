@@ -71,6 +71,22 @@ public final class CodeownersStatusBarWidget implements StatusBarWidget, StatusB
     return file != null && "CODEOWNERS".equals(file.getName());
   }
 
+  /**
+   * A file "needs suggestions" when it has no specific owner: no rule matched,
+   * the matched rule lists no owners, or it is owned only by the global wildcard
+   * rule ({@code *} / {@code **}), which assigns a repo-wide default rather than
+   * a real owner for this particular file.
+   */
+  static boolean needsSuggestions(@Nullable CodeownersRule rule) {
+    if (rule == null || rule.owners().isEmpty()) return true;
+    return isGlobalWildcard(rule.pattern());
+  }
+
+  private static boolean isGlobalWildcard(@NotNull String pattern) {
+    String p = pattern.trim();
+    return p.equals("*") || p.equals("**");
+  }
+
   @Override
   public @NotNull String ID() {
     return CodeownersStatusBarWidgetFactory.ID;
@@ -147,6 +163,8 @@ public final class CodeownersStatusBarWidget implements StatusBarWidget, StatusB
             .submit(AppExecutorUtil.getAppExecutorService());
   }
 
+  // ---- IconPresentation ----
+
   private @Nullable VirtualFile currentFile() {
     if (project.isDisposed()) return null;
     VirtualFile[] selected = FileEditorManager.getInstance(project).getSelectedFiles();
@@ -158,8 +176,6 @@ public final class CodeownersStatusBarWidget implements StatusBarWidget, StatusB
     // MessageBusConnection and PSI listener are tied to `this` and disposed by the platform.
     statusBar = null;
   }
-
-  // ---- IconPresentation ----
 
   @Override
   public @NotNull Icon getIcon() {
@@ -210,22 +226,6 @@ public final class CodeownersStatusBarWidget implements StatusBarWidget, StatusB
       }
     }
     navigateToMatchedRule();
-  }
-
-  /**
-   * A file "needs suggestions" when it has no specific owner: no rule matched,
-   * the matched rule lists no owners, or it is owned only by the global wildcard
-   * rule ({@code *} / {@code **}), which assigns a repo-wide default rather than
-   * a real owner for this particular file.
-   */
-  static boolean needsSuggestions(@Nullable CodeownersRule rule) {
-    if (rule == null || rule.owners().isEmpty()) return true;
-    return isGlobalWildcard(rule.pattern());
-  }
-
-  private static boolean isGlobalWildcard(@NotNull String pattern) {
-    String p = pattern.trim();
-    return p.equals("*") || p.equals("**");
   }
 
   /**

@@ -1,10 +1,6 @@
 package net.wolfig.codeowls.inspection;
 
-import com.intellij.codeInspection.InspectionManager;
-import com.intellij.codeInspection.LocalInspectionTool;
-import com.intellij.codeInspection.LocalQuickFix;
-import com.intellij.codeInspection.ProblemDescriptor;
-import com.intellij.codeInspection.ProblemHighlightType;
+import com.intellij.codeInspection.*;
 import com.intellij.lang.ASTNode;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.project.Project;
@@ -42,33 +38,6 @@ import java.util.List;
  * when the PSI changes.
  */
 public final class CodeownersUnnecessaryRuleInspection extends LocalInspectionTool {
-
-  @Override
-  public ProblemDescriptor @Nullable [] checkFile(@NotNull PsiFile file,
-                                                  @NotNull InspectionManager manager,
-                                                  boolean isOnTheFly) {
-    if (!file.getLanguage().is(CodeownersLanguage.INSTANCE)) return null;
-
-    Analysis analysis = analysisFor(file);
-    if (analysis.findings().isEmpty()) return ProblemDescriptor.EMPTY_ARRAY;
-
-    List<PsiElement> patternTokens = collectPatternTokens(file);
-    // Defensive: rules and PATTERN tokens are produced from the same content,
-    // so they must align 1:1. If they somehow don't, skip rather than mis-mark.
-    if (patternTokens.size() != analysis.rules().size()) return ProblemDescriptor.EMPTY_ARRAY;
-
-    List<ProblemDescriptor> problems = new ArrayList<>(analysis.findings().size());
-    for (Finding finding : analysis.findings()) {
-      PsiElement token = patternTokens.get(finding.ruleIndex());
-      problems.add(manager.createProblemDescriptor(
-              token,
-              message(finding, analysis.rules()),
-              new RemoveRuleQuickFix(),
-              highlightType(finding.kind()),
-              isOnTheFly));
-    }
-    return problems.toArray(ProblemDescriptor.EMPTY_ARRAY);
-  }
 
   /**
    * A non-existent path is a likely mistake worth a warning (yellow underline);
@@ -115,6 +84,33 @@ public final class CodeownersUnnecessaryRuleInspection extends LocalInspectionTo
       return true;
     });
     return tokens;
+  }
+
+  @Override
+  public ProblemDescriptor @Nullable [] checkFile(@NotNull PsiFile file,
+                                                  @NotNull InspectionManager manager,
+                                                  boolean isOnTheFly) {
+    if (!file.getLanguage().is(CodeownersLanguage.INSTANCE)) return null;
+
+    Analysis analysis = analysisFor(file);
+    if (analysis.findings().isEmpty()) return ProblemDescriptor.EMPTY_ARRAY;
+
+    List<PsiElement> patternTokens = collectPatternTokens(file);
+    // Defensive: rules and PATTERN tokens are produced from the same content,
+    // so they must align 1:1. If they somehow don't, skip rather than mis-mark.
+    if (patternTokens.size() != analysis.rules().size()) return ProblemDescriptor.EMPTY_ARRAY;
+
+    List<ProblemDescriptor> problems = new ArrayList<>(analysis.findings().size());
+    for (Finding finding : analysis.findings()) {
+      PsiElement token = patternTokens.get(finding.ruleIndex());
+      problems.add(manager.createProblemDescriptor(
+              token,
+              message(finding, analysis.rules()),
+              new RemoveRuleQuickFix(),
+              highlightType(finding.kind()),
+              isOnTheFly));
+    }
+    return problems.toArray(ProblemDescriptor.EMPTY_ARRAY);
   }
 
   private record Analysis(@NotNull List<CodeownersRule> rules, @NotNull List<Finding> findings) {

@@ -29,17 +29,6 @@ import java.util.List;
  */
 public final class CodeownersRedundancyAnalyzer {
 
-  public enum Kind {NO_FILES_MATCH, SHADOWED}
-
-  /**
-   * @param ruleIndex          index of the unnecessary rule
-   * @param kind               why it is unnecessary
-   * @param shadowingRuleIndex for {@link Kind#SHADOWED}, the index of a rule that
-   *                           overrides it; {@code -1} otherwise
-   */
-  public record Finding(int ruleIndex, @NotNull Kind kind, int shadowingRuleIndex) {
-  }
-
   private CodeownersRedundancyAnalyzer() {
   }
 
@@ -89,5 +78,16 @@ public final class CodeownersRedundancyAnalyzer {
 
   static boolean isAnalyzable(@NotNull String pattern) {
     return !pattern.isBlank() && !pattern.startsWith("!");
+  }
+
+  public enum Kind {NO_FILES_MATCH, SHADOWED}
+
+  /**
+   * @param ruleIndex          index of the unnecessary rule
+   * @param kind               why it is unnecessary
+   * @param shadowingRuleIndex for {@link Kind#SHADOWED}, the index of a rule that
+   *                           overrides it; {@code -1} otherwise
+   */
+  public record Finding(int ruleIndex, @NotNull Kind kind, int shadowingRuleIndex) {
   }
 }
