@@ -14,9 +14,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Project-level cache of unique Git author emails, used by
@@ -97,6 +95,46 @@ public final class CodeownersGitContributorService {
     } catch (ExecutionException ignored) {
       return List.of();
     }
+  }
+
+  /**
+   * Drives {@code git log -<n> --format=%ae --no-merges -- <file>} and tallies
+   * the authors. Package-private so tests can run it against a temporary repo.
+   */
+  static @NotNull Map<String, Integer> queryFileAuthorCommits(@NotNull File workDir, @NotNull String filePath) {
+    GeneralCommandLine cmd = new GeneralCommandLine(
+            "git", "log", "-" + MAX_COMMITS, "--format=%ae", "--no-merges", "--", filePath);
+    cmd.setWorkDirectory(workDir);
+    cmd.setCharset(java.nio.charset.StandardCharsets.UTF_8);
+    try {
+      ProcessOutput output = ExecUtil.execAndGetOutput(cmd, TIMEOUT_MS);
+      if (output.getExitCode() != 0 || output.isTimeout()) return Map.of();
+      Map<String, Integer> counts = new LinkedHashMap<>();
+      for (String line : output.getStdoutLines()) {
+        String trimmed = line.trim();
+        if (trimmed.isEmpty() || trimmed.indexOf('@') <= 0) continue;
+        counts.merge(trimmed, 1, Integer::sum);
+      }
+      return counts;
+    } catch (ExecutionException ignored) {
+      return Map.of();
+    }
+  }
+
+  /**
+   * Counts, per author e-mail, the commits that touched {@code file}. Used to
+   * weight owner suggestions toward the people who actually wrote the file.
+   *
+   * <p>Unlike {@link #getCachedContributors()} this is computed on demand (it is
+   * called from a user-initiated background task, not during typing) and is not
+   * cached. Returns an empty map if {@code git} is unavailable, the file isn't
+   * tracked, or the command fails. Runs a {@code git} subprocess — never call it
+   * on the EDT.
+   */
+  public @NotNull Map<String, Integer> getFileAuthorCommits(@NotNull VirtualFile file) {
+    if (project.isDisposed() || !file.isInLocalFileSystem()) return Map.of();
+    File workDir = resolveWorkDir();
+    return workDir == null ? Map.of() : queryFileAuthorCommits(workDir, file.getPath());
   }
 
   /**

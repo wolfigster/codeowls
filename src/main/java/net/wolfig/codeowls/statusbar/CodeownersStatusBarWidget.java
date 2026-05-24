@@ -20,10 +20,12 @@ import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
 import com.intellij.psi.PsiTreeChangeAdapter;
 import com.intellij.psi.PsiTreeChangeEvent;
+import com.intellij.ui.awt.RelativePoint;
 import com.intellij.util.Consumer;
 import com.intellij.util.concurrency.AppExecutorUtil;
 import com.intellij.util.messages.MessageBusConnection;
 import net.wolfig.codeowls.matcher.CodeownersRule;
+import net.wolfig.codeowls.suggestion.CodeownersSuggestionPopup;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -185,7 +187,40 @@ public final class CodeownersStatusBarWidget implements StatusBarWidget, StatusB
 
   @Override
   public @NotNull Consumer<MouseEvent> getClickConsumer() {
-    return e -> navigateToMatchedRule();
+    return this::onClick;
+  }
+
+  /**
+   * When the selected file has no specific owner, offers owner suggestions;
+   * otherwise navigates to the matching rule. That is the moment the user most
+   * needs help, so the click is repurposed to a suggestion popup there.
+   */
+  private void onClick(@NotNull MouseEvent e) {
+    if (project.isDisposed()) return;
+    if (needsSuggestions(resolution.rule())) {
+      VirtualFile target = currentFile();
+      if (target != null) {
+        CodeownersSuggestionPopup.show(project, target, new RelativePoint(e));
+        return;
+      }
+    }
+    navigateToMatchedRule();
+  }
+
+  /**
+   * A file "needs suggestions" when it has no specific owner: no rule matched,
+   * the matched rule lists no owners, or it is owned only by the global wildcard
+   * rule ({@code *} / {@code **}), which assigns a repo-wide default rather than
+   * a real owner for this particular file.
+   */
+  static boolean needsSuggestions(@Nullable CodeownersRule rule) {
+    if (rule == null || rule.owners().isEmpty()) return true;
+    return isGlobalWildcard(rule.pattern());
+  }
+
+  private static boolean isGlobalWildcard(@NotNull String pattern) {
+    String p = pattern.trim();
+    return p.equals("*") || p.equals("**");
   }
 
   /**

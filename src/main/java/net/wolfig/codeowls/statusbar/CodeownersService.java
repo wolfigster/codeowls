@@ -102,6 +102,24 @@ public final class CodeownersService {
   }
 
   /**
+   * Resolves the CODEOWNERS context for {@code file}: the governing CODEOWNERS
+   * file, the file's path relative to that CODEOWNERS file's root, and the
+   * parsed rules. Returns {@code null} when no CODEOWNERS file is reachable.
+   *
+   * <p>Used by owner-suggestion: it needs the repo-relative path (to build a
+   * new rule and to score path proximity) and the rules, all anchored to the
+   * same root the resolver uses. Must be called under a read action.
+   */
+  public @Nullable FileContext fileContext(@Nullable VirtualFile file) {
+    if (file == null || project.isDisposed()) return null;
+    Located located = locateFor(file);
+    if (located == null) return null;
+    String relativePath = relativizeAgainst(file.getPath(), located.root.getPath());
+    if (relativePath == null || relativePath.isEmpty()) return null;
+    return new FileContext(located.codeownersFile, relativePath, getRules(located.codeownersFile));
+  }
+
+  /**
    * @return the CODEOWNERS file that was used for the most recent resolution, or {@code null}.
    */
   public @Nullable VirtualFile getCodeownersFile() {
@@ -141,6 +159,15 @@ public final class CodeownersService {
   }
 
   private record Located(@NotNull VirtualFile codeownersFile, @NotNull VirtualFile root) {
+  }
+
+  /**
+   * The CODEOWNERS context for a target file: its governing CODEOWNERS file, its
+   * repo-relative path, and the parsed rules.
+   */
+  public record FileContext(@NotNull VirtualFile codeownersFile,
+                            @NotNull String relativePath,
+                            @NotNull List<CodeownersRule> rules) {
   }
 
   private record Cache(@NotNull VirtualFile sourceFile, long stamp, @NotNull List<CodeownersRule> rules) {

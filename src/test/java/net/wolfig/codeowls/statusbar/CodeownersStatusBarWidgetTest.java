@@ -204,4 +204,48 @@ public class CodeownersStatusBarWidgetTest {
     // Assert
     assertTrue("expected escaped ampersand, got: " + tooltip, tooltip.contains("@a&amp;b-team"));
   }
+
+  // -- needsSuggestions (drives the click → suggestion popup) ---------------
+
+  @Test
+  public void needsSuggestions_noRule_isTrue() {
+    // Assert — nothing matched the file.
+    assertTrue(CodeownersStatusBarWidget.needsSuggestions(null));
+  }
+
+  @Test
+  public void needsSuggestions_ruleWithNoOwners_isTrue() {
+    // Arrange — a matched rule that lists no owners.
+    CodeownersRule rule = resolution("*.txt", List.of()).rule();
+
+    // Assert
+    assertTrue(CodeownersStatusBarWidget.needsSuggestions(rule));
+  }
+
+  @Test
+  public void needsSuggestions_globalWildcardWithOwners_isTrue() {
+    // Arrange — only the repo-wide catch-all owns this file, not a real owner.
+    CodeownersRule rule = resolution("*", List.of("@global-team")).rule();
+
+    // Assert
+    assertTrue(CodeownersStatusBarWidget.needsSuggestions(rule));
+  }
+
+  @Test
+  public void needsSuggestions_doubleStarWildcardWithOwners_isTrue() {
+    // Arrange — "**" is likewise a global catch-all.
+    CodeownersRule rule = resolution("**", List.of("@global-team")).rule();
+
+    // Assert
+    assertTrue(CodeownersStatusBarWidget.needsSuggestions(rule));
+  }
+
+  @Test
+  public void needsSuggestions_specificRuleWithOwners_isFalse() {
+    // Arrange — a real, file-specific owner; no suggestions needed.
+    CodeownersRule rule = resolution("*.java", List.of("@backend")).rule();
+
+    // Assert
+    assertFalse(CodeownersStatusBarWidget.needsSuggestions(rule));
+  }
 }

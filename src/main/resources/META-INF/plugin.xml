@@ -22,7 +22,8 @@
               GitLab section headers, optional sections, and approval counts &mdash;
               colors configurable under <em>Settings → Editor → Color Scheme → CODEOWNERS</em>.</li>
           <li><b>Status bar widget</b> showing the owners of the currently selected file;
-              click to jump to the matching rule in the CODEOWNERS file.</li>
+              click to jump to the matching rule &mdash; or, when the file has no owner,
+              to get confidence-ranked owner suggestions you can add to CODEOWNERS in one click.</li>
           <li><b>Inlay hints</b> displaying the number of files each glob rule matches in
               the current project; toggle via <em>Find Action → Toggle CODEOWNERS File Count Hints</em>.</li>
           <li><b>Path completion</b> while typing glob patterns and <b>owner completion</b>
