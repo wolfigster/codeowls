@@ -148,6 +148,20 @@ public class CodeownersStatusBarWidgetTest {
     assertSame(AllIcons.CodeWithMe.Users, icon);
   }
 
+  @Test
+  public void getIcon_globalWildcardWithOwners_returnsCwmAccessIcon() {
+    // Arrange — only the repo-wide catch-all owns this file, so it has no
+    // specific owner; the icon must match the "no owner" state.
+    CodeownersStatusBarWidget w = widget();
+    setResolution(w, resolution("*", List.of("@global-team")));
+
+    // Act
+    Icon icon = w.getIcon();
+
+    // Assert
+    assertSame(AllIcons.CodeWithMe.CwmAccess, icon);
+  }
+
   // -- getTooltipText ------------------------------------------------------
 
   @Test

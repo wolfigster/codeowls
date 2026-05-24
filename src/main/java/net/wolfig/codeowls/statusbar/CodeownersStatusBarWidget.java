@@ -164,10 +164,10 @@ public final class CodeownersStatusBarWidget implements StatusBarWidget, StatusB
   @Override
   public @NotNull Icon getIcon() {
     CodeownersRule rule = resolution.rule();
-    int ownerCount = rule == null ? 0 : rule.owners().size();
-    if (ownerCount == 0) return AllIcons.CodeWithMe.CwmAccess;
-    if (ownerCount == 1) return AllIcons.General.User;
-    return AllIcons.CodeWithMe.Users;
+    // No specific owner (no match, no owners, or only the global wildcard):
+    // surface the "access" glyph, matching the click → suggestion behaviour.
+    if (needsSuggestions(rule)) return AllIcons.CodeWithMe.CwmAccess;
+    return rule.owners().size() == 1 ? AllIcons.General.User : AllIcons.CodeWithMe.Users;
   }
 
   @Override
