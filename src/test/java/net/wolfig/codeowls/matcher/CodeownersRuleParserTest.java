@@ -140,10 +140,9 @@ public class CodeownersRuleParserTest {
   }
 
   @Test
-  public void parse_inputContainingSectionHeader_extractsOnlyFollowingRules() {
-    // Arrange — GitLab section syntax. Section defaults (the owners on the
-    // header line) are intentionally not extracted; rule lines below the
-    // header still are.
+  public void parse_inputContainingSectionHeader_extractsRuleAndOwnRuleOwnersOverrideDefault() {
+    // Arrange — GitLab section syntax. The rule names its own owner, which
+    // overrides the section default; the header itself produces no rule.
     String input = """
             [Backend][2] @org/backend
             src/*.java @backend
@@ -156,6 +155,105 @@ public class CodeownersRuleParserTest {
     assertEquals(1, rules.size());
     assertEquals("src/*.java", rules.getFirst().pattern());
     assertEquals(List.of("@backend"), rules.getFirst().owners());
+  }
+
+  @Test
+  public void parse_ruleWithoutOwnersInSection_inheritsSectionDefault() {
+    // Arrange — the GitLab "default code owner for a section" example: rules
+    // with no owners of their own inherit the section's default owner.
+    String input = """
+            [Documentation] @docs-team
+            docs/
+            README.md
+            """;
+
+    // Act
+    List<CodeownersRule> rules = CodeownersRuleParser.parse(input, null);
+
+    // Assert
+    assertEquals(2, rules.size());
+    assertEquals("docs/", rules.get(0).pattern());
+    assertEquals(List.of("@docs-team"), rules.get(0).owners());
+    assertEquals("README.md", rules.get(1).pattern());
+    assertEquals(List.of("@docs-team"), rules.get(1).owners());
+  }
+
+  @Test
+  public void parse_ruleWithOwnersInSection_overridesSectionDefault() {
+    // Arrange — a rule that lists owners replaces the section default entirely;
+    // a sibling rule with no owners still inherits it.
+    String input = """
+            [Database] @database-team @agarcia
+            model/db/
+            config/db/database-setup.md @docs-team
+            """;
+
+    // Act
+    List<CodeownersRule> rules = CodeownersRuleParser.parse(input, null);
+
+    // Assert
+    assertEquals(2, rules.size());
+    assertEquals(List.of("@database-team", "@agarcia"), rules.get(0).owners());
+    assertEquals("config/db/database-setup.md", rules.get(1).pattern());
+    assertEquals(List.of("@docs-team"), rules.get(1).owners());
+  }
+
+  @Test
+  public void parse_sectionDefaultWithApprovalCount_inheritedByBareRule() {
+    // Arrange — the optional [N] approval count between the section name and
+    // the default owners must not be mistaken for an owner.
+    String input = """
+            [Backend][2] @org/backend @alice
+            src/Main.java
+            """;
+
+    // Act
+    List<CodeownersRule> rules = CodeownersRuleParser.parse(input, null);
+
+    // Assert
+    assertEquals(1, rules.size());
+    assertEquals(List.of("@org/backend", "@alice"), rules.getFirst().owners());
+  }
+
+  @Test
+  public void parse_ruleInLaterSection_doesNotInheritEarlierSectionDefault() {
+    // Arrange — a section's default scope ends at the next header. The second
+    // section declares no defaults, so its bare rule has no owners.
+    String input = """
+            [Documentation] @docs-team
+            docs/
+            [Misc]
+            scripts/
+            """;
+
+    // Act
+    List<CodeownersRule> rules = CodeownersRuleParser.parse(input, null);
+
+    // Assert
+    assertEquals(2, rules.size());
+    assertEquals(List.of("@docs-team"), rules.get(0).owners());
+    assertEquals("scripts/", rules.get(1).pattern());
+    assertTrue(rules.get(1).owners().isEmpty());
+  }
+
+  @Test
+  public void parse_ruleBeforeAnySection_doesNotInheritLaterSectionDefault() {
+    // Arrange — defaults apply only inside their section; a leading rule keeps
+    // its own (here empty) owners.
+    String input = """
+            *.txt
+            [Docs] @docs-team
+            README.md
+            """;
+
+    // Act
+    List<CodeownersRule> rules = CodeownersRuleParser.parse(input, null);
+
+    // Assert
+    assertEquals(2, rules.size());
+    assertEquals("*.txt", rules.get(0).pattern());
+    assertTrue(rules.get(0).owners().isEmpty());
+    assertEquals(List.of("@docs-team"), rules.get(1).owners());
   }
 
   @Test
