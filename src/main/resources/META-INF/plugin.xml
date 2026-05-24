@@ -30,6 +30,8 @@
               drawn from owners already declared in the file.</li>
           <li><b>Owner navigation</b> &mdash; Ctrl/Cmd+Click a user or team owner to open
               their GitHub / GitLab page (resolved from the repository's Git remote) in the browser.</li>
+          <li><b>Move / rename sync</b> &mdash; rules pointing at a moved or renamed file or
+              directory are rewritten to the new path automatically.</li>
           <li><b>Inspections</b> that warn about unnecessary rules &mdash; patterns matching no
               project file, and rules fully shadowed by a later rule &mdash; with a quick fix to remove them.</li>
           <li><b>Code folding</b> for GitLab section blocks.</li>
@@ -77,6 +79,10 @@
         <!-- Ctrl/Cmd+Click a user or team owner to open their GitHub/GitLab page. -->
         <gotoDeclarationHandler
                 implementation="net.wolfig.codeowls.navigation.CodeownersOwnerGotoDeclarationHandler"/>
+
+        <!-- Rewrite CODEOWNERS rule paths when a file/directory is moved or renamed. -->
+        <refactoring.elementListenerProvider
+                implementation="net.wolfig.codeowls.refactoring.CodeownersMoveRenameListenerProvider"/>
 
         <!-- Flags unnecessary rules: patterns that match no project file, and
              rules fully shadowed by a later rule. -->
