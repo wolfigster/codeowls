@@ -113,19 +113,31 @@ public class CodeownersStatusBarWidgetTest {
   // -- getIcon -------------------------------------------------------------
 
   @Test
-  public void getIcon_default_returnsUsersIcon() {
+  public void getIcon_noResolution_returnsCwmAccessIcon() {
     // Act
     Icon icon = widget().getIcon();
 
-    // Assert — the people-group glyph from the bundled AllIcons set; the
-    // widget surfaces it regardless of resolution state so the tooltip remains
-    // the source of truth for owner detail.
-    assertSame(AllIcons.CodeWithMe.Users, icon);
+    // Assert — with no matching rule (zero owners) the widget shows the
+    // CodeWithMe access glyph to signal "no owner".
+    assertSame(AllIcons.CodeWithMe.CwmAccess, icon);
   }
 
   @Test
-  public void getIcon_withResolution_stillReturnsCwmUsersIcon() {
-    // Arrange — having owners resolved must not swap the icon.
+  public void getIcon_singleOwner_returnsGeneralUserIcon() {
+    // Arrange — a lone owner gets the single-person glyph.
+    CodeownersStatusBarWidget w = widget();
+    setResolution(w, resolution("*.java", List.of("@alice")));
+
+    // Act
+    Icon icon = w.getIcon();
+
+    // Assert
+    assertSame(AllIcons.General.User, icon);
+  }
+
+  @Test
+  public void getIcon_multipleOwners_returnsCwmUsersIcon() {
+    // Arrange — two or more owners get the people-group glyph.
     CodeownersStatusBarWidget w = widget();
     setResolution(w, resolution("*.java", List.of("@alice", "@bob")));
 

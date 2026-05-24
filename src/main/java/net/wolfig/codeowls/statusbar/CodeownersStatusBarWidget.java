@@ -161,6 +161,10 @@ public final class CodeownersStatusBarWidget implements StatusBarWidget, StatusB
 
   @Override
   public @NotNull Icon getIcon() {
+    CodeownersRule rule = resolution.rule();
+    int ownerCount = rule == null ? 0 : rule.owners().size();
+    if (ownerCount == 0) return AllIcons.CodeWithMe.CwmAccess;
+    if (ownerCount == 1) return AllIcons.General.User;
     return AllIcons.CodeWithMe.Users;
   }
 
@@ -170,8 +174,10 @@ public final class CodeownersStatusBarWidget implements StatusBarWidget, StatusB
     if (res.isEmpty()) return "No CODEOWNERS rule matches this file";
     CodeownersRule rule = res.rule();
     if (rule == null) return "No CODEOWNERS rule matches this file";
+    String codeowners = !rule.owners().isEmpty() ?
+      StringUtil.escapeXmlEntities(String.join(", ", rule.owners())) : "Unknown";
     return "<html>" +
-            "<b>Owners:</b> " + StringUtil.escapeXmlEntities(String.join(", ", rule.owners())) + "<br>" +
+            "<b>Owners:</b> " + codeowners + "<br>" +
             "<b>Pattern:</b> <em>" + StringUtil.escapeXmlEntities(rule.pattern()) + "</em><br>" +
             "<b>Source:</b> " + StringUtil.escapeXmlEntities(displaySourcePath(rule)) +
             "</html>";
