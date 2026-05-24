@@ -219,6 +219,34 @@ public class CodeownersStatusBarWidgetTest {
     assertTrue("expected escaped ampersand, got: " + tooltip, tooltip.contains("@a&amp;b-team"));
   }
 
+  @Test
+  public void getTooltipText_ruleWithSectionApprovalCount_showsApprovalsLine() {
+    // Arrange — a rule whose GitLab section requires 2 approvals.
+    CodeownersStatusBarWidget w = widget();
+    CodeownersRule rule = new CodeownersRule(
+            "*.java", List.of("@backend"), CodeownersGlob.compile("*.java"), null, 0, 2);
+    setResolution(w, new CodeownersOwnerResolution(rule));
+
+    // Act
+    String tooltip = w.getTooltipText();
+
+    // Assert
+    assertTrue("expected approvals line, got: " + tooltip, tooltip.contains("<b>Approvals required:</b> 2"));
+  }
+
+  @Test
+  public void getTooltipText_ruleWithoutApprovalCount_omitsApprovalsLine() {
+    // Arrange — a rule outside any approving section (approvalCount null).
+    CodeownersStatusBarWidget w = widget();
+    setResolution(w, resolution("*.java", List.of("@backend")));
+
+    // Act
+    String tooltip = w.getTooltipText();
+
+    // Assert
+    assertFalse("must not show approvals line, got: " + tooltip, tooltip.contains("Approvals required"));
+  }
+
   // -- needsSuggestions (drives the click → suggestion popup) ---------------
 
   @Test

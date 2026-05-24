@@ -178,9 +178,14 @@ public final class CodeownersStatusBarWidget implements StatusBarWidget, StatusB
     if (rule == null) return "No CODEOWNERS rule matches this file";
     String codeowners = !rule.owners().isEmpty() ?
             StringUtil.escapeXmlEntities(String.join(", ", rule.owners())) : "Unknown";
+    // Only present for rules inside a GitLab section that declares one, e.g. [Backend][2].
+    String approvals = rule.approvalCount() != null
+            ? "<b>Approvals required:</b> " + rule.approvalCount() + "<br>"
+            : "";
     return "<html>" +
             "<b>Owners:</b> " + codeowners + "<br>" +
             "<b>Pattern:</b> <em>" + StringUtil.escapeXmlEntities(rule.pattern()) + "</em><br>" +
+            approvals +
             "<b>Source:</b> " + StringUtil.escapeXmlEntities(displaySourcePath(rule)) +
             "</html>";
   }

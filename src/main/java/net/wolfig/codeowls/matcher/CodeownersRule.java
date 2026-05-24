@@ -20,13 +20,27 @@ import java.util.regex.Pattern;
  * @param sourceFile      the CODEOWNERS file the rule was read from, or
  *                        {@code null} if it has been deleted since parsing
  * @param lineNumber      0-based line number of the rule in the source file
+ * @param approvalCount   number of approvals required by the rule's enclosing
+ *                        GitLab section (e.g. {@code [Backend][2]}), or
+ *                        {@code null} when the rule is in no section or the
+ *                        section declares no approval count
  */
 public record CodeownersRule(
         @NotNull String pattern,
         @NotNull List<String> owners,
         @NotNull Pattern compiledPattern,
         @Nullable VirtualFile sourceFile,
-        int lineNumber) {
+        int lineNumber,
+        @Nullable Integer approvalCount) {
+
+  /**
+   * Convenience constructor for a rule with no section approval count.
+   */
+  public CodeownersRule(@NotNull String pattern, @NotNull List<String> owners,
+                        @NotNull Pattern compiledPattern, @Nullable VirtualFile sourceFile,
+                        int lineNumber) {
+    this(pattern, owners, compiledPattern, sourceFile, lineNumber, null);
+  }
 
   /**
    * @return {@code true} if {@code relativePath} (forward-slash, no leading /) is matched by this rule.

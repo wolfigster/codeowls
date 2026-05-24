@@ -5,6 +5,7 @@ import org.junit.Test;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -213,6 +214,50 @@ public class CodeownersRuleParserTest {
     // Assert
     assertEquals(1, rules.size());
     assertEquals(List.of("@org/backend", "@alice"), rules.getFirst().owners());
+    assertEquals(Integer.valueOf(2), rules.getFirst().approvalCount());
+  }
+
+  @Test
+  public void parse_sectionWithoutApprovalCount_leavesApprovalCountNull() {
+    // Arrange — a section header with no [N].
+    String input = """
+            [Documentation] @docs-team
+            docs/
+            """;
+
+    // Act
+    List<CodeownersRule> rules = CodeownersRuleParser.parse(input, null);
+
+    // Assert
+    assertNull(rules.getFirst().approvalCount());
+  }
+
+  @Test
+  public void parse_approvalCountScopedToItsSection_notInheritedByLaterSection() {
+    // Arrange — [Backend][2] requires approvals; the later [Docs] section does not.
+    String input = """
+            [Backend][2] @org/backend
+            src/Main.java
+            [Docs] @docs-team
+            README.md
+            """;
+
+    // Act
+    List<CodeownersRule> rules = CodeownersRuleParser.parse(input, null);
+
+    // Assert
+    assertEquals(2, rules.size());
+    assertEquals(Integer.valueOf(2), rules.get(0).approvalCount());
+    assertNull("approval count must not leak into the next section", rules.get(1).approvalCount());
+  }
+
+  @Test
+  public void parse_ruleOutsideAnySection_hasNullApprovalCount() {
+    // Act
+    List<CodeownersRule> rules = CodeownersRuleParser.parse("*.java @backend\n", null);
+
+    // Assert
+    assertNull(rules.getFirst().approvalCount());
   }
 
   @Test
