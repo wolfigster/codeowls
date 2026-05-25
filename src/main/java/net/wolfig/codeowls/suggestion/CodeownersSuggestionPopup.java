@@ -12,7 +12,7 @@ import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
-import com.intellij.ui.SimpleListCellRenderer;
+import com.intellij.ui.ColoredListCellRenderer;
 import com.intellij.ui.awt.RelativePoint;
 import net.wolfig.codeowls.completion.CodeownersGitContributorService;
 import net.wolfig.codeowls.completion.CodeownersOwnerCollector;
@@ -20,6 +20,7 @@ import net.wolfig.codeowls.completion.CodeownersOwnerCollector.OwnerCandidate;
 import net.wolfig.codeowls.statusbar.CodeownersService;
 import org.jetbrains.annotations.NotNull;
 
+import javax.swing.*;
 import java.util.List;
 import java.util.Map;
 
@@ -79,8 +80,14 @@ public final class CodeownersSuggestionPopup {
     JBPopupFactory.getInstance()
             .createPopupChooserBuilder(suggestions)
             .setTitle("Suggested Owners for " + context.relativePath())
-            .setRenderer(SimpleListCellRenderer.<OwnerSuggestion>create(
-                    (label, value, index) -> label.setText(format(value))))
+            .setRenderer(new ColoredListCellRenderer<OwnerSuggestion>() {
+              @Override
+              protected void customizeCellRenderer(@NotNull JList<? extends OwnerSuggestion> list,
+                                                   OwnerSuggestion value, int index,
+                                                   boolean selected, boolean hasFocus) {
+                if (value != null) append(format(value));
+              }
+            })
             .setItemChosenCallback(suggestion ->
                     insertRule(project, context.codeownersFile(), context.relativePath(), suggestion.owner()))
             .createPopup()
