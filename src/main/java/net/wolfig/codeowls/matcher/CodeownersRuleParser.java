@@ -60,11 +60,16 @@ public final class CodeownersRuleParser {
     // Approval count declared on the current section header (e.g. [Backend][2]),
     // or null when the section declares none. Also reset by each new header.
     Integer sectionApprovalCount = null;
+    // The current section header as a whole, or null before the first header.
+    // Carried onto each rule so an explanation can describe inheritance.
+    CodeownersSection currentSection = null;
     // While true we are accumulating the section header line; its owners become
     // the section default and its [N] becomes the approval count once it ends.
     boolean inSectionHeader = false;
     List<String> headerOwners = null;
     Integer headerApprovalCount = null;
+    String headerName = null;
+    boolean headerOptional = false;
 
     while (lexer.getTokenType() != null) {
       IElementType type = lexer.getTokenType();
@@ -73,18 +78,21 @@ public final class CodeownersRuleParser {
 
       if (type == CodeownersTokenTypes.SECTION_HEADER) {
         if (pendingPattern != null) {
-          rules.add(buildRule(pendingPattern, effectiveOwners(pendingOwners, sectionDefaultOwners), source, pendingLine, sectionApprovalCount));
+          rules.add(buildRule(pendingPattern, pendingOwners, sectionDefaultOwners, source, pendingLine, sectionApprovalCount, currentSection));
           pendingPattern = null;
           pendingOwners = null;
         }
         // Begin collecting the new section header; the previous section's
         // default owners and approval count no longer apply once a header is seen.
+        String headerText = content.subSequence(start, end).toString();
+        headerOptional = headerText.startsWith("^");
+        headerName = sectionName(headerText);
         inSectionHeader = true;
         headerOwners = new ArrayList<>();
         headerApprovalCount = null;
       } else if (type == CodeownersTokenTypes.PATTERN) {
         if (pendingPattern != null) {
-          rules.add(buildRule(pendingPattern, effectiveOwners(pendingOwners, sectionDefaultOwners), source, pendingLine, sectionApprovalCount));
+          rules.add(buildRule(pendingPattern, pendingOwners, sectionDefaultOwners, source, pendingLine, sectionApprovalCount, currentSection));
         }
         pendingPattern = content.subSequence(start, end).toString();
         pendingLine = lineNumberOf(content, start);
@@ -101,11 +109,16 @@ public final class CodeownersRuleParser {
         if (inSectionHeader) {
           sectionDefaultOwners = List.copyOf(headerOwners);
           sectionApprovalCount = headerApprovalCount;
+          currentSection = new CodeownersSection(
+                  headerName != null ? headerName : "",
+                  headerOptional, sectionDefaultOwners, sectionApprovalCount);
           inSectionHeader = false;
           headerOwners = null;
           headerApprovalCount = null;
+          headerName = null;
+          headerOptional = false;
         } else if (pendingPattern != null) {
-          rules.add(buildRule(pendingPattern, effectiveOwners(pendingOwners, sectionDefaultOwners), source, pendingLine, sectionApprovalCount));
+          rules.add(buildRule(pendingPattern, pendingOwners, sectionDefaultOwners, source, pendingLine, sectionApprovalCount, currentSection));
           pendingPattern = null;
           pendingOwners = null;
         }
@@ -114,9 +127,20 @@ public final class CodeownersRuleParser {
       lexer.advance();
     }
     if (pendingPattern != null) {
-      rules.add(buildRule(pendingPattern, effectiveOwners(pendingOwners, sectionDefaultOwners), source, pendingLine, sectionApprovalCount));
+      rules.add(buildRule(pendingPattern, pendingOwners, sectionDefaultOwners, source, pendingLine, sectionApprovalCount, currentSection));
     }
     return rules;
+  }
+
+  /**
+   * Extracts the name from a {@code SECTION_HEADER} token such as
+   * {@code [Backend]} or {@code ^[Backend]} — the text between the brackets.
+   */
+  private static @NotNull String sectionName(@NotNull String headerText) {
+    int open = headerText.indexOf('[');
+    int close = headerText.indexOf(']', open + 1);
+    if (open < 0 || close < 0) return "";
+    return headerText.substring(open + 1, close).trim();
   }
 
   /**
@@ -136,26 +160,28 @@ public final class CodeownersRuleParser {
   }
 
   /**
-   * A rule's effective owners: the owners it declares, or — when it declares
-   * none — the default owners inherited from its enclosing section.
+   * Builds a rule, applying section inheritance: a rule that declares no owners
+   * of its own takes the enclosing section's default owners, and that fact is
+   * recorded via {@link CodeownersRule#ownersInherited()} for later explanation.
    */
-  private static @NotNull List<String> effectiveOwners(@NotNull List<String> ruleOwners,
-                                                       @NotNull List<String> sectionDefaultOwners) {
-    return ruleOwners.isEmpty() ? sectionDefaultOwners : ruleOwners;
-  }
-
   private static @NotNull CodeownersRule buildRule(@NotNull String pattern,
-                                                   @NotNull List<String> owners,
+                                                   @NotNull List<String> ruleOwners,
+                                                   @NotNull List<String> sectionDefaultOwners,
                                                    @Nullable VirtualFile source,
                                                    int lineNumber,
-                                                   @Nullable Integer approvalCount) {
+                                                   @Nullable Integer approvalCount,
+                                                   @Nullable CodeownersSection section) {
+    boolean inherited = ruleOwners.isEmpty() && !sectionDefaultOwners.isEmpty();
+    List<String> owners = inherited ? sectionDefaultOwners : ruleOwners;
     return new CodeownersRule(
             pattern,
             List.copyOf(owners),
             CodeownersGlob.compile(pattern),
             source,
             lineNumber,
-            approvalCount);
+            approvalCount,
+            section,
+            inherited);
   }
 
   private static boolean isOwnerToken(IElementType type) {

@@ -5,11 +5,13 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
+import net.wolfig.codeowls.explain.OwnershipExplanation;
 import net.wolfig.codeowls.matcher.CodeownersRule;
 import net.wolfig.codeowls.matcher.CodeownersRuleParser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -76,6 +78,20 @@ public final class CodeownersService {
   }
 
   /**
+   * The rules that match {@code relativePath}, in file (evaluation) order. The
+   * single source of truth for "which rules apply" — both resolution and
+   * explanation go through here so they cannot disagree.
+   */
+  private static @NotNull List<CodeownersRule> matchingRules(@NotNull List<CodeownersRule> rules,
+                                                             @NotNull String relativePath) {
+    List<CodeownersRule> matching = new ArrayList<>();
+    for (CodeownersRule rule : rules) {
+      if (rule.matches(relativePath)) matching.add(rule);
+    }
+    return matching;
+  }
+
+  /**
    * Returns the owners that apply to {@code file} (last matching rule wins),
    * or {@link CodeownersOwnerResolution#NONE} if no rule applies or no
    * CODEOWNERS file is reachable from {@code file}'s ancestors.
@@ -90,15 +106,32 @@ public final class CodeownersService {
     String relativePath = relativizeAgainst(file.getPath(), located.root.getPath());
     if (relativePath == null) return CodeownersOwnerResolution.NONE;
 
-    List<CodeownersRule> rules = getRules(located.codeownersFile);
-    // Last-match-wins: walk in reverse and stop at the first rule that matches.
-    for (int i = rules.size() - 1; i >= 0; i--) {
-      CodeownersRule rule = rules.get(i);
-      if (rule.matches(relativePath)) {
-        return new CodeownersOwnerResolution(rule);
-      }
-    }
-    return CodeownersOwnerResolution.NONE;
+    List<CodeownersRule> matching = matchingRules(getRules(located.codeownersFile), relativePath);
+    // Last-match-wins: the last matching rule in file order governs.
+    return matching.isEmpty()
+            ? CodeownersOwnerResolution.NONE
+            : new CodeownersOwnerResolution(matching.get(matching.size() - 1));
+  }
+
+  /**
+   * Explains the CODEOWNERS ownership of {@code file}: every rule that matches
+   * it (in evaluation order) and which one wins. Shares its matching pass with
+   * {@link #resolveOwners} via {@link #matchingRules}, so the effective owner in
+   * the returned {@link OwnershipExplanation} always agrees with the status bar
+   * widget and owner-lookup logic.
+   *
+   * <p>Must be called under a read action — it accesses VFS and possibly
+   * document state.
+   */
+  public @NotNull OwnershipExplanation explain(@NotNull VirtualFile file) {
+    if (project.isDisposed()) return OwnershipExplanation.noCodeowners(file);
+    Located located = locateFor(file);
+    if (located == null) return OwnershipExplanation.noCodeowners(file);
+    String relativePath = relativizeAgainst(file.getPath(), located.root.getPath());
+    if (relativePath == null) return OwnershipExplanation.noCodeowners(file);
+
+    List<CodeownersRule> matching = matchingRules(getRules(located.codeownersFile), relativePath);
+    return OwnershipExplanation.of(file, relativePath, located.codeownersFile, matching);
   }
 
   /**

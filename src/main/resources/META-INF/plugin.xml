@@ -125,6 +125,25 @@
                 class="net.wolfig.codeowls.inlay.ToggleCodeownersFileCountHintsAction"
                 text="_Toggle CODEOWNERS File Count Hints_"
                 description="_Enable or disable CODEOWNERS file count inlay hints_"/>
+
+        <!-- "Codeowls" submenu on the Project View / Editor context menus. Hides
+             itself when it has no applicable action (see CodeowlsActionGroup). -->
+        <group id="Codeowls.ContextMenu"
+               class="net.wolfig.codeowls.action.CodeowlsActionGroup"
+               text="Codeowls"
+               popup="true">
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+
+            <!-- Explain why a project file has its effective CODEOWNERS owner(s):
+                 all matching rules, the winning rule, section inheritance, and
+                 approval counts, with click-to-navigate. Also reachable from
+                 Find Action via its full name. -->
+            <action id="Codeowls.ExplainOwnership"
+                    class="net.wolfig.codeowls.explain.ExplainCodeownersOwnershipAction"
+                    text="Explain Ownership"
+                    description="Show the CODEOWNERS rules that determine this file's owners"/>
+        </group>
     </actions>
 
 </idea-plugin>

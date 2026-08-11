@@ -24,6 +24,14 @@ import java.util.regex.Pattern;
  *                        GitLab section (e.g. {@code [Backend][2]}), or
  *                        {@code null} when the rule is in no section or the
  *                        section declares no approval count
+ * @param section         the enclosing GitLab section header, or {@code null}
+ *                        when the rule is in no section. Retained purely so an
+ *                        ownership explanation can describe inheritance; the
+ *                        effective {@link #owners()} / {@link #approvalCount()}
+ *                        are already resolved
+ * @param ownersInherited {@code true} when {@link #owners()} were inherited from
+ *                        {@link #section}'s default owners because the rule
+ *                        declared none of its own
  */
 public record CodeownersRule(
         @NotNull String pattern,
@@ -31,7 +39,18 @@ public record CodeownersRule(
         @NotNull Pattern compiledPattern,
         @Nullable VirtualFile sourceFile,
         int lineNumber,
-        @Nullable Integer approvalCount) {
+        @Nullable Integer approvalCount,
+        @Nullable CodeownersSection section,
+        boolean ownersInherited) {
+
+  /**
+   * Convenience constructor for a rule outside any GitLab section.
+   */
+  public CodeownersRule(@NotNull String pattern, @NotNull List<String> owners,
+                        @NotNull Pattern compiledPattern, @Nullable VirtualFile sourceFile,
+                        int lineNumber, @Nullable Integer approvalCount) {
+    this(pattern, owners, compiledPattern, sourceFile, lineNumber, approvalCount, null, false);
+  }
 
   /**
    * Convenience constructor for a rule with no section approval count.
