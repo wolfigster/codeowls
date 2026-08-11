@@ -314,6 +314,72 @@ public class CodeownersRuleParserTest {
   }
 
   @Test
+  public void parse_bareRuleInSection_recordsSectionAndInheritedFlag() {
+    // Arrange — a rule that inherits its owners from the section default.
+    String input = """
+            [Backend][2] @backend-team
+            src/payment/**
+            """;
+
+    // Act
+    CodeownersRule rule = CodeownersRuleParser.parse(input, null).getFirst();
+
+    // Assert — provenance is retained for explanation.
+    assertTrue("owners were inherited from the section", rule.ownersInherited());
+    assertNotNull(rule.section());
+    assertEquals("Backend", rule.section().name());
+    assertFalse(rule.section().optional());
+    assertEquals(List.of("@backend-team"), rule.section().defaultOwners());
+    assertEquals(Integer.valueOf(2), rule.section().approvalCount());
+  }
+
+  @Test
+  public void parse_ruleOverridingSectionOwners_isNotMarkedInherited() {
+    // Arrange — the rule declares its own owner, overriding the section default.
+    String input = """
+            [Backend][2] @backend-team
+            src/*.java @payment-team
+            """;
+
+    // Act
+    CodeownersRule rule = CodeownersRuleParser.parse(input, null).getFirst();
+
+    // Assert — effective owners are the rule's own, and the section is still
+    // recorded (with its overridden default) for explanation.
+    assertFalse(rule.ownersInherited());
+    assertEquals(List.of("@payment-team"), rule.owners());
+    assertNotNull(rule.section());
+    assertEquals(List.of("@backend-team"), rule.section().defaultOwners());
+  }
+
+  @Test
+  public void parse_optionalSection_recordsOptionalFlag() {
+    // Arrange — GitLab optional section (^ prefix).
+    String input = """
+            ^[Optional] @maybe-team
+            docs/
+            """;
+
+    // Act
+    CodeownersRule rule = CodeownersRuleParser.parse(input, null).getFirst();
+
+    // Assert
+    assertNotNull(rule.section());
+    assertTrue(rule.section().optional());
+    assertEquals("Optional", rule.section().name());
+  }
+
+  @Test
+  public void parse_ruleOutsideSection_hasNullSectionAndNotInherited() {
+    // Act
+    CodeownersRule rule = CodeownersRuleParser.parse("*.java @backend\n", null).getFirst();
+
+    // Assert
+    assertNull(rule.section());
+    assertFalse(rule.ownersInherited());
+  }
+
+  @Test
   public void parse_ruleWithGlob_producesAppliedCompiledPattern() {
     // Arrange
     String input = "src/**/*.java @backend\n";
