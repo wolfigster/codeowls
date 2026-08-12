@@ -90,6 +90,9 @@
         <refactoring.elementListenerProvider
                 implementation="net.wolfig.codeowls.refactoring.CodeownersMoveRenameListenerProvider"/>
 
+        <!-- Shift+F6 on a CODEOWNERS owner opens the owner refactoring dialog. -->
+        <renameHandler implementation="net.wolfig.codeowls.refactoring.CodeownersOwnerRenameHandler"/>
+
         <!-- Gutter icon on wildcard/directory rules listing the files they match. -->
         <codeInsight.lineMarkerProvider
                 language="CODEOWNERS"
@@ -143,6 +146,18 @@
                     class="net.wolfig.codeowls.explain.ExplainCodeownersOwnershipAction"
                     text="Explain Ownership"
                     description="Show the CODEOWNERS rules that determine this file's owners"/>
+
+            <!-- Replace the owner under the caret inside its GitLab section or
+                 across the whole CODEOWNERS file. Shows itself only when the
+                 caret is on an owner token; also placed on the Refactor menu
+                 (Shift+F6 goes through CodeownersOwnerRenameHandler) and
+                 reachable from Find Action. -->
+            <action id="Codeowls.RefactorOwner"
+                    class="net.wolfig.codeowls.refactoring.RefactorCodeownersOwnerAction"
+                    text="Refactor Owner..."
+                    description="Replace this CODEOWNERS owner in the current section or the whole file">
+                <add-to-group group-id="RefactoringMenu" anchor="last"/>
+            </action>
         </group>
     </actions>
 

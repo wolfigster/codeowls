@@ -136,7 +136,7 @@ public final class CodeownersRuleParser {
    * Extracts the name from a {@code SECTION_HEADER} token such as
    * {@code [Backend]} or {@code ^[Backend]} — the text between the brackets.
    */
-  private static @NotNull String sectionName(@NotNull String headerText) {
+  public static @NotNull String sectionName(@NotNull String headerText) {
     int open = headerText.indexOf('[');
     int close = headerText.indexOf(']', open + 1);
     if (open < 0 || close < 0) return "";
@@ -184,7 +184,12 @@ public final class CodeownersRuleParser {
             inherited);
   }
 
-  private static boolean isOwnerToken(IElementType type) {
+  /**
+   * Whether {@code type} is one of the lexer's owner categories — user, team,
+   * role or e-mail. Shared so that features working on owner tokens (owner
+   * refactoring, for one) classify them exactly as the rule model does.
+   */
+  public static boolean isOwnerToken(IElementType type) {
     return type == CodeownersTokenTypes.USER_OWNER
             || type == CodeownersTokenTypes.TEAM_OWNER
             || type == CodeownersTokenTypes.ROLE_OWNER
