@@ -1,0 +1,770 @@
+# Refactor Owner
+
+Implement a new CodeOwls feature called **"Refactor Owner"**.
+
+## Goal
+
+Users should be able to refactor an owner directly from the CODEOWNERS file.
+
+An owner can currently be one of the supported owner types, for example:
+
+```text
+@username
+@group/team
+user@example.com
+@@developer
+@@maintainer
+@@owner
+```
+
+When the user right-clicks an owner token inside a CODEOWNERS rule or GitLab section definition, CodeOwls should offer an action:
+
+**Refactor Owner...**
+
+The user should then be able to replace that owner either:
+
+1. **only inside the current GitLab section**, if the selected owner is inside a section
+2. **inside the entire CODEOWNERS file**
+
+The feature must operate semantically on owner tokens and must not perform an unsafe plain-text replacement.
+
+---
+
+## Example
+
+Given:
+
+```text
+/backend/** @alice
+
+[Frontend]
+/frontend/** @alice @frontend-team
+/frontend/components/** @alice
+
+[Documentation]
+/docs/** @alice
+```
+
+If the user right-clicks:
+
+```text
+@alice
+```
+
+inside the `[Frontend]` section and selects:
+
+**Refactor Owner...**
+
+they should be able to choose between:
+
+```text
+Replace in current section
+Replace in entire CODEOWNERS file
+```
+
+Replacing `@alice` with `@bob` in the current section should result in:
+
+```text
+/backend/** @alice
+
+[Frontend]
+/frontend/** @bob @frontend-team
+/frontend/components/** @bob
+
+[Documentation]
+/docs/** @alice
+```
+
+Replacing it in the entire CODEOWNERS file should result in:
+
+```text
+/backend/** @bob
+
+[Frontend]
+/frontend/** @bob @frontend-team
+/frontend/components/** @bob
+
+[Documentation]
+/docs/** @bob
+```
+
+---
+
+## Entry Point
+
+The action should be available when the caret or context-menu position is on a valid CODEOWNERS owner token.
+
+Preferred interaction:
+
+```text
+Right Click Owner
+    ↓
+Refactor
+    ↓
+Refactor Owner...
+```
+
+or, if integrating with JetBrains' refactoring menu is unnecessarily complex:
+
+```text
+Right Click Owner
+    ↓
+CodeOwls
+    ↓
+Refactor Owner...
+```
+
+Also make the action available through **Find Action / Search Everywhere** where appropriate.
+
+The action must only be enabled when the selected PSI/token actually represents a supported CODEOWNERS owner.
+
+Do not enable it for:
+
+* glob patterns
+* comments
+* section names
+* approval counts
+* whitespace
+* arbitrary text
+
+---
+
+## Replacement Dialog
+
+After invoking the action, show a native JetBrains dialog.
+
+The dialog should contain at least:
+
+```text
+Current owner:
+@alice
+
+Replace with:
+[@bob________________]
+
+Scope:
+(o) Current section
+( ) Entire CODEOWNERS file
+
+              Cancel    Refactor
+```
+
+If the selected owner is not located inside a GitLab section, only offer:
+
+```text
+Entire CODEOWNERS file
+```
+
+Do not show a meaningless "Current section" option in that case.
+
+Use JetBrains-native UI components and follow existing CodeOwls UI conventions.
+
+---
+
+## Scope Semantics
+
+### Entire CODEOWNERS file
+
+Replace every semantic occurrence of the selected owner in the current CODEOWNERS file.
+
+For example:
+
+```text
+@alice
+```
+
+should only replace owner tokens representing exactly `@alice`.
+
+It must NOT accidentally modify things such as:
+
+```text
+@alice-team
+alice@example.com
+# @alice
+```
+
+unless those values independently represent the same exact owner token according to the parser.
+
+Comments must not be modified.
+
+---
+
+### Current GitLab Section
+
+If the selected owner occurs inside a GitLab section, replace occurrences only within that section.
+
+Example:
+
+```text
+[Backend]
+/api/** @alice
+/database/** @alice
+
+[Frontend]
+/ui/** @alice
+```
+
+Refactoring `@alice` inside `[Backend]` with scope `Current section` should produce:
+
+```text
+[Backend]
+/api/** @bob
+/database/** @bob
+
+[Frontend]
+/ui/** @alice
+```
+
+The section range begins at the selected GitLab section header and ends immediately before the next section header or at EOF.
+
+The section header itself must also be part of the scope.
+
+This is important because GitLab section headers may define default owners:
+
+```text
+[Backend] @alice
+/api/**
+/database/**
+```
+
+Refactoring `@alice` in this section must also update the section default owner:
+
+```text
+[Backend] @bob
+/api/**
+/database/**
+```
+
+---
+
+## Owner Types
+
+Reuse the owner types already supported by CodeOwls.
+
+Possible examples include:
+
+```text
+@username
+@organization/team
+group/subgroup/team
+email@example.com
+@@developer
+@@maintainer
+@@owner
+```
+
+Do not hard-code assumptions if CodeOwls already has a PSI element, parser model, enum, or utility that classifies owner tokens.
+
+Inspect the existing parser and syntax-highlighting implementation to determine how owners are represented internally.
+
+The refactoring should work for every owner type that CodeOwls currently considers valid.
+
+---
+
+## Validation
+
+Validate the replacement owner before applying the refactoring.
+
+Reuse existing CodeOwls owner parsing/validation logic if available.
+
+For example, invalid input such as:
+
+```text
+hello world
+```
+
+should not be accepted if it cannot represent a valid owner.
+
+If the plugin intentionally supports arbitrary owner formats depending on GitHub/GitLab semantics, follow the existing parser instead of introducing stricter rules.
+
+The replacement dialog should clearly show validation errors and disable the Refactor button for invalid input.
+
+---
+
+## Semantic Refactoring
+
+Do NOT implement this as:
+
+```java
+text.replace("@alice", "@bob")
+```
+
+The implementation must operate on parsed CODEOWNERS owner elements.
+
+Use PSI if CodeOwls already provides PSI elements for owners.
+
+Conceptually:
+
+```text
+Selected Owner PSI
+        ↓
+Determine owner identity
+        ↓
+Determine replacement scope
+        ↓
+Find semantic owner occurrences
+        ↓
+Perform WriteCommandAction
+        ↓
+Replace corresponding PSI/text ranges
+```
+
+This prevents accidental modifications to:
+
+* comments
+* similar usernames
+* patterns
+* unrelated text
+* e-mail addresses containing similar substrings
+
+---
+
+## JetBrains Refactoring Behavior
+
+The entire refactoring should behave like a normal JetBrains refactoring operation.
+
+Use the appropriate JetBrains APIs so that:
+
+* the operation is undoable with a single Undo
+* modifications happen inside a proper write action
+* the editor remains consistent
+* PSI/document synchronization is respected
+
+Prefer something conceptually similar to:
+
+```java
+WriteCommandAction.runWriteCommandAction(...)
+```
+
+or the more appropriate refactoring APIs already used by the project.
+
+The entire operation should appear as one logical action in the Undo stack.
+
+Example undo label:
+
+```text
+Refactor CODEOWNERS Owner
+```
+
+---
+
+## Preview
+
+If JetBrains' existing APIs make it reasonably easy, provide a preview before applying the refactoring.
+
+Example:
+
+```text
+Replace @alice with @bob
+
+Occurrences:
+
+CODEOWNERS:4
+/frontend/** @alice
+
+CODEOWNERS:5
+/frontend/components/** @alice
+
+2 occurrences will be changed.
+```
+
+A full JetBrains "Find Usages" style preview is optional.
+
+Do not introduce a large amount of infrastructure only for the preview.
+
+At minimum, the dialog should show the number of occurrences that will be modified:
+
+```text
+2 occurrences will be replaced.
+```
+
+---
+
+## Duplicate Owner Handling
+
+Consider situations such as:
+
+```text
+/api/** @alice @bob
+```
+
+and the user refactors:
+
+```text
+@alice → @bob
+```
+
+This would result in:
+
+```text
+/api/** @bob @bob
+```
+
+Avoid introducing duplicate owners where possible.
+
+Preferred result:
+
+```text
+/api/** @bob
+```
+
+However, inspect the existing parser/model before implementing this.
+
+If automatic deduplication would make the implementation unsafe or unexpectedly change formatting, keep the initial implementation conservative and document the behavior.
+
+Add tests for this case either way.
+
+---
+
+## Formatting Preservation
+
+The refactoring should preserve the existing CODEOWNERS formatting.
+
+For example:
+
+```text
+/api/**        @alice     @backend
+```
+
+should become:
+
+```text
+/api/**        @bob       @backend
+```
+
+without unnecessarily reformatting the whole line or file.
+
+Do not rewrite the complete CODEOWNERS file if replacing the relevant PSI/text ranges is sufficient.
+
+Preserve:
+
+* whitespace
+* comments
+* section formatting
+* line endings
+* unrelated rules
+
+---
+
+## Existing Code Integration
+
+Before implementation, inspect the CodeOwls codebase and identify:
+
+* CODEOWNERS PSI elements / lexer tokens
+* owner PSI representation
+* GitLab section PSI representation
+* owner completion implementation
+* owner navigation implementation
+* existing inspections operating on owners
+* any existing rename/refactoring infrastructure
+* utilities for locating the surrounding GitLab section
+* existing WriteCommandAction usage
+
+Reuse existing infrastructure wherever possible.
+
+Do not create an independent CODEOWNERS parser.
+
+---
+
+## Suggested Architecture
+
+A possible implementation could look conceptually like:
+
+```text
+RefactorOwnerAction
+        ↓
+Selected CODEOWNERS owner PSI
+        ↓
+RefactorOwnerDialog
+        ↓
+OwnerRefactoringService
+        ↓
+findOccurrences(owner, scope)
+        ↓
+replaceOccurrences(...)
+```
+
+Possible model:
+
+```java
+enum OwnerRefactoringScope {
+    SECTION,
+    FILE
+}
+```
+
+and:
+
+```java
+class OwnerRefactoringService {
+
+    List<OwnerOccurrence> findOccurrences(
+        PsiElement owner,
+        OwnerRefactoringScope scope
+    );
+
+    void replaceOwner(
+        PsiElement owner,
+        String newOwner,
+        OwnerRefactoringScope scope
+    );
+}
+```
+
+These names are only suggestions.
+
+Follow the existing CodeOwls naming and architecture if a better integration exists.
+
+---
+
+## Section Detection
+
+The section containing the selected owner must be determined using the CODEOWNERS PSI/model rather than fragile text searching.
+
+Example:
+
+```text
+[Backend]
+/backend/** @alice
+
+[Frontend]
+/frontend/** @alice
+```
+
+Selecting the first `@alice` should resolve to:
+
+```text
+[Backend]
+```
+
+Selecting the second should resolve to:
+
+```text
+[Frontend]
+```
+
+For owners defined directly on the section header:
+
+```text
+[Backend][2] @alice @backend-team
+```
+
+the selected owner belongs to the `[Backend]` section.
+
+---
+
+## Edge Cases
+
+Handle at least the following situations:
+
+### Owner outside sections
+
+```text
+/api/** @alice
+```
+
+Only offer file-wide replacement.
+
+---
+
+### Owner inside section
+
+```text
+[Backend]
+/api/** @alice
+```
+
+Offer:
+
+```text
+Current section
+Entire CODEOWNERS file
+```
+
+---
+
+### Owner defined on section header
+
+```text
+[Backend] @alice
+```
+
+The owner belongs to that section.
+
+---
+
+### Same owner in multiple sections
+
+```text
+[Backend]
+/api/** @alice
+
+[Frontend]
+/ui/** @alice
+```
+
+Section scope must affect only the selected section.
+
+---
+
+### Similar owners
+
+```text
+@alice
+@alice-team
+@alice2
+```
+
+Refactoring `@alice` must not touch the others.
+
+---
+
+### Comments
+
+```text
+# Ask @alice before modifying this
+/api/** @alice
+```
+
+Only the actual owner occurrence should be replaced.
+
+---
+
+### Multiple occurrences in one rule
+
+If malformed or unusual input contains the same owner multiple times, handle it safely.
+
+---
+
+### Email owner
+
+```text
+/api/** alice@example.com
+```
+
+Refactoring it should behave exactly like user/team owners.
+
+---
+
+### GitLab roles
+
+If the existing parser considers these owners:
+
+```text
+@@developer
+@@maintainer
+@@owner
+```
+
+they should also be refactorable.
+
+---
+
+## Keyboard Shortcut / Rename Integration
+
+Investigate whether integrating with JetBrains' standard **Rename** action (`Shift+F6`) makes sense.
+
+Ideal behavior would be:
+
+```text
+Caret on @alice
+Shift+F6
+```
+
+→ invoke CodeOwls owner refactoring.
+
+However, only implement this if it integrates cleanly with the existing PSI architecture.
+
+The context-menu action is the primary requirement.
+
+Do not significantly complicate the implementation solely to support `Shift+F6`.
+
+---
+
+## Tests
+
+Add automated tests covering at least:
+
+1. replace username across entire file
+2. replace username only inside current section
+3. same owner in multiple sections
+4. owner on section header
+5. owner outside a section
+6. multiple occurrences inside one section
+7. similar owner names are untouched
+8. owner-looking text inside comments is untouched
+9. e-mail owner replacement
+10. GitLab role replacement if supported
+11. formatting remains unchanged
+12. undoable write operation where test infrastructure allows it
+13. replacement with an invalid owner is rejected
+14. replacing with the same owner produces no unnecessary changes
+15. duplicate-owner scenario such as `@alice → @bob` when `@bob` already exists on the same rule
+
+Existing CODEOWNERS parsing and matching tests must continue to pass.
+
+---
+
+## Implementation Process
+
+Before making changes:
+
+1. Inspect the repository structure.
+2. Identify the existing CODEOWNERS parser / PSI hierarchy.
+3. Identify how owner tokens are represented.
+4. Identify how GitLab sections are represented.
+5. Check whether CodeOwls already uses JetBrains refactoring APIs elsewhere.
+6. Check how similar editor actions are registered in `plugin.xml`.
+
+Then implement the feature using the existing project conventions.
+
+Do not perform unrelated refactorings.
+
+---
+
+## Acceptance Criteria
+
+The feature is complete when:
+
+* I can right-click a CODEOWNERS owner and select **Refactor Owner...**
+* the current owner is prefilled / displayed
+* I can enter a replacement owner
+* replacement input is validated
+* when inside a GitLab section I can choose:
+
+  * current section
+  * entire CODEOWNERS file
+* outside a section only file-wide replacement is offered
+* section default owners are included in section scope
+* only semantic owner occurrences are modified
+* comments and similarly named owners remain untouched
+* all changes are performed as one undoable JetBrains command
+* formatting of unrelated CODEOWNERS content remains unchanged
+* all currently supported owner types work
+* tests cover the relevant scopes and edge cases
+* existing CodeOwls functionality remains unchanged
+
+After implementation, run the relevant tests and normal project verification/build.
+
+Finally, summarize:
+
+* which files were added or modified
+* how owner occurrences are identified
+* how section boundaries are determined
+* how the refactoring is executed
+* whether standard JetBrains Rename / `Shift+F6` integration was feasible
+* any edge cases or limitations that remain
+
+---
+
+Please move on
+
+---
+
+<task-notification>
+<task-id>bi0k2j01e</task-id>
+<tool-use-id>toolu_01PiJEARjjeAu4yGQGYuPFQ4</tool-use-id>
+<output-file>/tmp/claude-1000/-mnt-c-Eclipse-codeowls/7140d8ed-a758-4f98-bc0b-5b43a00e5d2e/tasks/bi0k2j01e.output</output-file>
+<status>completed</status>
+<summary>Background command "Re-run plugin verification on final build" completed (exit code 0)</summary>
+</task-notification>
