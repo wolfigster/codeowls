@@ -1,10 +1,6 @@
 package net.wolfig.codeowls.suggestion;
 
 import com.intellij.openapi.application.ReadAction;
-import com.intellij.openapi.command.WriteCommandAction;
-import com.intellij.openapi.editor.Document;
-import com.intellij.openapi.fileEditor.FileDocumentManager;
-import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
@@ -17,6 +13,8 @@ import com.intellij.ui.awt.RelativePoint;
 import net.wolfig.codeowls.completion.CodeownersGitContributorService;
 import net.wolfig.codeowls.completion.CodeownersOwnerCollector;
 import net.wolfig.codeowls.completion.CodeownersOwnerCollector.OwnerCandidate;
+import net.wolfig.codeowls.entry.CodeownersEntryRule;
+import net.wolfig.codeowls.entry.CodeownersEntryWriter;
 import net.wolfig.codeowls.statusbar.CodeownersService;
 import org.jetbrains.annotations.NotNull;
 
@@ -103,21 +101,11 @@ public final class CodeownersSuggestionPopup {
 
   private static void insertRule(@NotNull Project project, @NotNull VirtualFile codeownersFile,
                                  @NotNull String relativePath, @NotNull String owner) {
-    if (!codeownersFile.isValid()) return;
-    int[] ruleLine = {-1};
-    WriteCommandAction.runWriteCommandAction(project, "Add CODEOWNERS Rule", null, () -> {
-      Document document = FileDocumentManager.getInstance().getDocument(codeownersFile);
-      if (document == null) return;
-      CharSequence text = document.getCharsSequence();
-      String separator = text.isEmpty() || text.charAt(text.length() - 1) == '\n' ? "" : "\n";
-      int ruleOffset = document.getTextLength() + separator.length();
-      document.insertString(document.getTextLength(), separator + "/" + relativePath + " " + owner + "\n");
-      FileDocumentManager.getInstance().saveDocument(document);
-      ruleLine[0] = document.getLineNumber(Math.min(ruleOffset, Math.max(document.getTextLength() - 1, 0)));
-    });
-    // Navigate after the write completes, not from inside the write action.
-    if (ruleLine[0] >= 0) {
-      new OpenFileDescriptor(project, codeownersFile, ruleLine[0], 0).navigate(true);
+    String pattern = CodeownersEntryRule.pattern(
+            relativePath, CodeownersEntryRule.PathMode.EXACT);
+    String rule = CodeownersEntryRule.build(pattern, owner);
+    if (rule != null) {
+      CodeownersEntryWriter.appendAndNavigate(project, codeownersFile, rule);
     }
   }
 }

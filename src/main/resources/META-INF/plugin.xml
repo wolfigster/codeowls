@@ -27,7 +27,7 @@
           <li><b>GitLab section support</b> &mdash; rules inherit their section's default owners
               (<code>[Documentation] @docs-team</code>) and approval count; a rule's own owners override the default.</li>
           <li><b>Inlay hints</b> displaying the number of files each glob rule matches in
-              the current project; toggle via <em>Find Action → Toggle CODEOWNERS File Count Hints</em>.</li>
+              the current project; toggle via <em>Find Action → Codeowls: Toggle file count hints</em>.</li>
           <li><b>Matched-file navigation</b> &mdash; a gutter icon on each wildcard / directory
               rule lists the project files it matches; pick one to jump to it.</li>
           <li><b>Path completion</b> for glob patterns and <b>section-name completion</b> for GitLab
@@ -126,7 +126,7 @@
              reachable from Find Action (Ctrl/Cmd+Shift+A). -->
         <action id="Codeowls.ToggleFileCountHints"
                 class="net.wolfig.codeowls.inlay.ToggleCodeownersFileCountHintsAction"
-                text="_Toggle CODEOWNERS File Count Hints_"
+                text="Codeowls: Toggle file count hints"
                 description="_Enable or disable CODEOWNERS file count inlay hints_"/>
 
         <!-- "Codeowls" submenu on the Project View / Editor context menus. Hides
@@ -138,14 +138,25 @@
             <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
 
+            <action id="Codeowls.AddEntry"
+                    class="net.wolfig.codeowls.entry.AddCodeownersEntryAction"
+                    text="Codeowls: Add entry"
+                    description="Add an ownership rule for the selected project file">
+                <override-text place="EditorPopup" text="Add entry"/>
+                <override-text place="ProjectViewPopup" text="Add entry"/>
+            </action>
+
             <!-- Explain why a project file has its effective CODEOWNERS owner(s):
                  all matching rules, the winning rule, section inheritance, and
                  approval counts, with click-to-navigate. Also reachable from
                  Find Action via its full name. -->
             <action id="Codeowls.ExplainOwnership"
                     class="net.wolfig.codeowls.explain.ExplainCodeownersOwnershipAction"
-                    text="Explain Ownership"
-                    description="Show the CODEOWNERS rules that determine this file's owners"/>
+                    text="Codeowls: Explain ownership"
+                    description="Show the CODEOWNERS rules that determine this file's owners">
+                <override-text place="EditorPopup" text="Explain ownership"/>
+                <override-text place="ProjectViewPopup" text="Explain ownership"/>
+            </action>
 
             <!-- Replace the owner under the caret inside its GitLab section or
                  across the whole CODEOWNERS file. Shows itself only when the
@@ -154,8 +165,10 @@
                  reachable from Find Action. -->
             <action id="Codeowls.RefactorOwner"
                     class="net.wolfig.codeowls.refactoring.RefactorCodeownersOwnerAction"
-                    text="Refactor Owner..."
+                    text="Codeowls: Refactor owner"
                     description="Replace this CODEOWNERS owner in the current section or the whole file">
+                <override-text place="EditorPopup" text="Refactor owner"/>
+                <override-text place="ProjectViewPopup" text="Refactor owner"/>
                 <add-to-group group-id="RefactoringMenu" anchor="last"/>
             </action>
         </group>

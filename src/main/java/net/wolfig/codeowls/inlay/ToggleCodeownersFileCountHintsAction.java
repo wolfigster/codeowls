@@ -17,7 +17,7 @@ import org.jetbrains.annotations.NotNull;
  * a name/description. This action wraps the same persistent setting so users
  * can flip it from anywhere — particularly useful when the hints are getting
  * in the way and the user wants to silence them with a single keystroke
- * (Ctrl/Cmd+Shift+A → "Toggle CODEOWNERS file count hints").
+ * (Ctrl/Cmd+Shift+A → "Codeowls: Toggle file count hints").
  *
  * <p>After flipping the setting we restart the daemon so the inlays disappear
  * (or reappear) on the next pass without waiting for an unrelated reparse.
@@ -46,8 +46,8 @@ public final class ToggleCodeownersFileCountHintsAction extends DumbAwareAction 
     DeclarativeInlayHintsSettings settings = DeclarativeInlayHintsSettings.Companion.getInstance();
     boolean enabled = Boolean.TRUE.equals(settings.isProviderEnabled(PROVIDER_ID));
     e.getPresentation().setText(enabled
-            ? "Disable CODEOWNERS File Count Hints"
-            : "Enable CODEOWNERS File Count Hints");
+            ? "Codeowls: Disable file count hints"
+            : "Codeowls: Enable file count hints");
     e.getPresentation().setDescription(enabled
             ? "Hide the file-count inlay hints in CODEOWNERS files"
             : "Show the file-count inlay hints in CODEOWNERS files");

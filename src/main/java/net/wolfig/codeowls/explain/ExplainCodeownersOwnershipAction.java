@@ -2,7 +2,6 @@ package net.wolfig.codeowls.explain;
 
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.application.ModalityState;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.project.DumbAwareAction;
@@ -11,9 +10,9 @@ import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.awt.RelativePoint;
 import com.intellij.util.concurrency.AppExecutorUtil;
+import net.wolfig.codeowls.action.CodeowlsFileActionTarget;
 import net.wolfig.codeowls.statusbar.CodeownersService;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Action that explains <em>why</em> the selected project file has its effective
@@ -33,24 +32,9 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class ExplainCodeownersOwnershipAction extends DumbAwareAction {
 
-  /**
-   * The single file the action targets, or {@code null} when the selection is
-   * not a single file (e.g. nothing selected, or a multi-selection).
-   */
-  private static @Nullable VirtualFile targetFile(@NotNull AnActionEvent e) {
-    VirtualFile[] many = e.getData(CommonDataKeys.VIRTUAL_FILE_ARRAY);
-    if (many != null && many.length > 1) return null;
-    return e.getData(CommonDataKeys.VIRTUAL_FILE);
-  }
-
-  private static boolean isExplainable(@Nullable VirtualFile file) {
-    return file != null && file.isValid() && !file.isDirectory()
-            && !"CODEOWNERS".equals(file.getName());
-  }
-
   @Override
   public void update(@NotNull AnActionEvent e) {
-    e.getPresentation().setEnabledAndVisible(e.getProject() != null && isExplainable(targetFile(e)));
+    e.getPresentation().setEnabledAndVisible(CodeowlsFileActionTarget.from(e) != null);
   }
 
   @Override
@@ -61,8 +45,8 @@ public final class ExplainCodeownersOwnershipAction extends DumbAwareAction {
   @Override
   public void actionPerformed(@NotNull AnActionEvent e) {
     Project project = e.getProject();
-    VirtualFile file = targetFile(e);
-    if (project == null || !isExplainable(file)) return;
+    VirtualFile file = CodeowlsFileActionTarget.from(e);
+    if (project == null || file == null) return;
 
     // Resolve the popup anchor now, on the EDT, rather than retaining the
     // DataContext across the background computation.

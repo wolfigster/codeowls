@@ -91,7 +91,7 @@ public class ToggleCodeownersFileCountHintsActionTest {
     action.update(event);
 
     // Assert
-    assertEquals("Disable CODEOWNERS File Count Hints", event.getPresentation().getText());
+    assertEquals("Codeowls: Disable file count hints", event.getPresentation().getText());
   }
 
   @Test
@@ -105,7 +105,7 @@ public class ToggleCodeownersFileCountHintsActionTest {
     action.update(event);
 
     // Assert
-    assertEquals("Enable CODEOWNERS File Count Hints", event.getPresentation().getText());
+    assertEquals("Codeowls: Enable file count hints", event.getPresentation().getText());
   }
 
   @Test
