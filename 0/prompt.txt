@@ -1,0 +1,29 @@
+Please rename all the actions to Codeowls: ACTION / COMMANDS. For example: "Codeowls: add entry" or "Codeowls: explain Ownership". In the Popupmenu it should be without the "Codeowls: " and starts with uppercase e.g "Add entry"
+
+---
+
+Please rename all the actions to Codeowls: ACTION / COMMANDS. For example: "Codeowls: add entry" or "Codeowls: explain Ownership". In the Popupmenu it should be without the "Codeowls: " and starts with uppercase e.g "Add entry"
+
+---
+
+Please remove the ... in the Add entry...
+
+---
+
+Please remove the ... in the Add entry...
+
+---
+
+Do the same on Refactor owner...
+
+---
+
+Do the same on Refactor owner...
+
+---
+
+git status
+
+---
+
+git status
