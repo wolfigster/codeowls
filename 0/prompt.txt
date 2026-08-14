@@ -1,0 +1,37 @@
+Analyze this codebase and create a .github/copilot-instructions.md file to help future Copilot sessions work effectively in this repository.
+
+## What to include
+
+1. **Build, test, and lint commands** - If they exist. Include how to run a single test, not just the full suite
+2. **High-level architecture** - Focus on the "big picture" that requires reading multiple files to understand
+3. **Key conventions** - Patterns specific to this codebase that aren't obvious from reading a single file
+
+## What NOT to include
+
+- Generic development practices (e.g., "write unit tests", "use meaningful names")
+- Obvious instructions that any developer would know
+- Exhaustive file/directory listings that can be easily discovered
+- Made-up sections like "Tips for Development" unless they exist in actual docs
+- Explanations of why something ISN'T relevant (just omit it)
+
+## Integration
+
+- If .github/copilot-instructions.md already exists, suggest improvements rather than replacing it entirely
+- Incorporate important parts from README.md, CONTRIBUTING.md, or existing instruction files
+- Check for other AI assistant configs and incorporate their important parts:
+  - Claude/OpenCode: CLAUDE.md
+  - Cursor: .cursorrules, .cursor/rules/
+  - Codex/Jules/OpenCode: AGENTS.md
+  - Windsurf: .windsurfrules
+  - Aider: CONVENTIONS.md, AIDER_CONVENTIONS.md
+  - Cline: .clinerules, .cline_rules
+
+## MCP Servers
+
+After creating the file, briefly ask if the user wants to configure any MCP servers relevant to the project type (e.g., Playwright for web projects). If none seem relevant, skip this section entirely - do not explain why MCP servers aren't needed.
+
+## Finishing up
+
+End with a brief summary of what you created and ask if the user wants to adjust anything or add coverage for areas you may have missed. Do not list what you omitted.
+
+Start by exploring the repository structure.
