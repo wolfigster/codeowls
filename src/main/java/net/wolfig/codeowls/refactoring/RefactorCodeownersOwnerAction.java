@@ -1,6 +1,5 @@
 package net.wolfig.codeowls.refactoring;
 
-import com.intellij.lang.ASTNode;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
@@ -9,8 +8,7 @@ import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
-import net.wolfig.codeowls.lang.CodeownersLanguage;
-import net.wolfig.codeowls.matcher.CodeownersRuleParser;
+import net.wolfig.codeowls.action.CodeownersOwnerActionTarget;
 import net.wolfig.codeowls.refactoring.CodeownersOwnerRefactoring.OwnerToken;
 import net.wolfig.codeowls.refactoring.CodeownersOwnerRefactoring.Plan;
 import net.wolfig.codeowls.refactoring.CodeownersOwnerRefactoring.SectionRange;
@@ -44,18 +42,7 @@ public final class RefactorCodeownersOwnerAction extends DumbAwareAction {
    * under a read action.
    */
   public static @Nullable PsiElement ownerElementAt(@Nullable Editor editor, @Nullable PsiFile file) {
-    if (editor == null || file == null || !file.getLanguage().is(CodeownersLanguage.INSTANCE)) return null;
-
-    int offset = editor.getCaretModel().getOffset();
-    PsiElement element = ownerLeafAt(file, offset);
-    return element != null ? element : (offset > 0 ? ownerLeafAt(file, offset - 1) : null);
-  }
-
-  private static @Nullable PsiElement ownerLeafAt(@NotNull PsiFile file, int offset) {
-    PsiElement leaf = file.findElementAt(offset);
-    if (leaf == null) return null;
-    ASTNode node = leaf.getNode();
-    return node != null && CodeownersRuleParser.isOwnerToken(node.getElementType()) ? leaf : null;
+    return CodeownersOwnerActionTarget.from(editor, file);
   }
 
   /**

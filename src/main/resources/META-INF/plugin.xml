@@ -24,18 +24,29 @@
           <li><b>Status bar widget</b> showing the owners (and any required approval count) of the
               currently selected file; click to jump to the matching rule &mdash; or, when the file has no
               specific owner, to get confidence-ranked owner suggestions you can add to CODEOWNERS in one click.</li>
+          <li><b>Explain ownership</b> &mdash; inspect every rule matching a selected project file,
+              see which last-match-wins rule is effective, and navigate directly to the relevant
+              CODEOWNERS lines.</li>
+          <li><b>Add CODEOWNERS entry</b> &mdash; create an exact-file or directory ownership rule
+              for a selected project file from the editor or Project view, with existing exact-rule
+              replacement support.</li>
           <li><b>GitLab section support</b> &mdash; rules inherit their section's default owners
               (<code>[Documentation] @docs-team</code>) and approval count; a rule's own owners override the default.</li>
           <li><b>Inlay hints</b> displaying the number of files each glob rule matches in
               the current project; toggle via <em>Find Action → Codeowls: Toggle file count hints</em>.</li>
           <li><b>Matched-file navigation</b> &mdash; a gutter icon on each wildcard / directory
               rule lists the project files it matches; pick one to jump to it.</li>
+          <li><b>Effective owner search</b> &mdash; right-click any owner token to find every
+              project file for which that owner is responsible after rule precedence and GitLab
+              section inheritance are applied.</li>
           <li><b>Path completion</b> for glob patterns and <b>section-name completion</b> for GitLab
               <code>[Section]</code> headers already used in the file.</li>
           <li><b>Owner completion</b> drawn from owners already in the file, Git-history contributors,
               and the built-in GitLab roles (<code>@@developer</code>, <code>@@maintainer</code>, <code>@@owner</code>).</li>
           <li><b>Owner navigation</b> &mdash; Ctrl/Cmd+Click a user or team owner to open
               their GitHub / GitLab page (resolved from the repository's Git remote) in the browser.</li>
+          <li><b>Owner refactoring</b> &mdash; replace an owner throughout its GitLab section or
+              the whole CODEOWNERS file from the context menu or with <em>Shift+F6</em>.</li>
           <li><b>Move / rename sync</b> &mdash; rules pointing at a moved or renamed file or
               directory are rewritten to the new path automatically.</li>
           <li><b>Inspections</b> that warn about unnecessary rules &mdash; patterns matching no
@@ -157,6 +168,15 @@
                 <override-text place="EditorPopup" text="Explain ownership"/>
                 <override-text place="ProjectViewPopup" text="Explain ownership"/>
             </action>
+
+            <!-- Find project files for which the owner under the caret is part
+                 of the effective, last-match-wins ownership. The scan runs in a
+                 cancellable background task and publishes native Usage View
+                 results. Also reachable from Find Action. -->
+            <action id="Codeowls.FindFilesOwnedByOwner"
+                    class="net.wolfig.codeowls.search.FindFilesOwnedByOwnerAction"
+                    text="Codeowls: Find files owned by owner"
+                    description="Find project files effectively owned by the owner under the caret"/>
 
             <!-- Replace the owner under the caret inside its GitLab section or
                  across the whole CODEOWNERS file. Shows itself only when the

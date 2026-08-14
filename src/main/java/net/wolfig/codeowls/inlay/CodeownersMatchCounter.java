@@ -5,6 +5,7 @@ import com.intellij.psi.PsiFile;
 import com.intellij.psi.util.CachedValueProvider;
 import com.intellij.psi.util.CachedValuesManager;
 import com.intellij.psi.util.PsiModificationTracker;
+import com.intellij.util.Processor;
 import net.wolfig.codeowls.matcher.CodeownersRule;
 import net.wolfig.codeowls.matcher.CodeownersRuleParser;
 import org.jetbrains.annotations.NotNull;
@@ -113,9 +114,34 @@ public final class CodeownersMatchCounter {
    * skipped before recursion. Package-private for tests.
    */
   public static @NotNull List<String> collectProjectFilePaths(@NotNull VirtualFile root) {
-    List<String> result = new ArrayList<>();
-    walk(root, "", result);
-    return result;
+    List<String> paths = new ArrayList<>();
+    for (VirtualFile file : collectProjectFiles(root)) {
+      String relativePath = relativePath(root, file);
+      if (relativePath != null) paths.add(relativePath);
+    }
+    return paths;
+  }
+
+  /**
+   * Collect every regular project file under {@code root}. This is the shared
+   * repository walk used by inlays, matched-file navigation, and owner search.
+   */
+  public static @NotNull List<VirtualFile> collectProjectFiles(@NotNull VirtualFile root) {
+    List<VirtualFile> files = new ArrayList<>();
+    processProjectFiles(root, file -> {
+      files.add(file);
+      return true;
+    });
+    return files;
+  }
+
+  /**
+   * Processes regular project files under {@code root}, stopping immediately
+   * when {@code processor} returns {@code false}.
+   */
+  public static boolean processProjectFiles(@NotNull VirtualFile root,
+                                            @NotNull Processor<? super VirtualFile> processor) {
+    return walk(root, processor);
   }
 
   /**
@@ -136,17 +162,25 @@ public final class CodeownersMatchCounter {
     return false;
   }
 
-  private static void walk(@NotNull VirtualFile dir, @NotNull String prefix, @NotNull List<String> out) {
+  private static boolean walk(@NotNull VirtualFile dir,
+                              @NotNull Processor<? super VirtualFile> processor) {
     for (VirtualFile child : dir.getChildren()) {
       if (!child.isValid()) continue;
       String name = child.getName();
-      String next = prefix.isEmpty() ? name : prefix + "/" + name;
       if (child.isDirectory()) {
         if (IGNORED_DIRECTORY_NAMES.contains(name)) continue;
-        walk(child, next, out);
+        if (!walk(child, processor)) return false;
       } else {
-        out.add(next);
+        if (!processor.process(child)) return false;
       }
     }
+    return true;
+  }
+
+  private static @Nullable String relativePath(@NotNull VirtualFile root, @NotNull VirtualFile file) {
+    String rootPath = root.getPath();
+    String filePath = file.getPath();
+    String prefix = rootPath.endsWith("/") ? rootPath : rootPath + "/";
+    return filePath.startsWith(prefix) ? filePath.substring(prefix.length()) : null;
   }
 }

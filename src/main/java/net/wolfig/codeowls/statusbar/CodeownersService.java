@@ -100,17 +100,30 @@ public final class CodeownersService {
    * document state.
    */
   public @NotNull CodeownersOwnerResolution resolveOwners(@Nullable VirtualFile file) {
-    if (file == null || project.isDisposed()) return CodeownersOwnerResolution.NONE;
-    Located located = locateFor(file);
-    if (located == null) return CodeownersOwnerResolution.NONE;
-    String relativePath = relativizeAgainst(file.getPath(), located.root.getPath());
-    if (relativePath == null) return CodeownersOwnerResolution.NONE;
-
-    List<CodeownersRule> matching = matchingRules(getRules(located.codeownersFile), relativePath);
-    // Last-match-wins: the last matching rule in file order governs.
-    return matching.isEmpty()
+    EffectiveOwnership ownership = resolveOwnership(file);
+    return ownership.isEmpty()
             ? CodeownersOwnerResolution.NONE
-            : new CodeownersOwnerResolution(matching.get(matching.size() - 1));
+            : new CodeownersOwnerResolution(ownership.rule());
+  }
+
+  /**
+   * Resolves the complete effective ownership context for {@code file}.
+   * This is the central API for features that need both the winning rule and
+   * the governing CODEOWNERS file/root.
+   *
+   * <p>Must be called under a read action.
+   */
+  public @NotNull EffectiveOwnership resolveOwnership(@Nullable VirtualFile file) {
+    ResolvedFile resolved = resolve(file);
+    if (resolved == null) return EffectiveOwnership.NONE;
+    CodeownersRule rule = resolved.matching.isEmpty()
+            ? null
+            : resolved.matching.getLast();
+    return new EffectiveOwnership(
+            resolved.located.codeownersFile,
+            resolved.located.root,
+            resolved.relativePath,
+            rule);
   }
 
   /**
@@ -124,14 +137,26 @@ public final class CodeownersService {
    * document state.
    */
   public @NotNull OwnershipExplanation explain(@NotNull VirtualFile file) {
-    if (project.isDisposed()) return OwnershipExplanation.noCodeowners(file);
-    Located located = locateFor(file);
-    if (located == null) return OwnershipExplanation.noCodeowners(file);
-    String relativePath = relativizeAgainst(file.getPath(), located.root.getPath());
-    if (relativePath == null) return OwnershipExplanation.noCodeowners(file);
+    ResolvedFile resolved = resolve(file);
+    return resolved == null
+            ? OwnershipExplanation.noCodeowners(file)
+            : OwnershipExplanation.of(
+            file,
+            resolved.relativePath,
+            resolved.located.codeownersFile,
+            resolved.matching);
+  }
 
-    List<CodeownersRule> matching = matchingRules(getRules(located.codeownersFile), relativePath);
-    return OwnershipExplanation.of(file, relativePath, located.codeownersFile, matching);
+  private @Nullable ResolvedFile resolve(@Nullable VirtualFile file) {
+    if (file == null || project.isDisposed()) return null;
+    Located located = locateFor(file);
+    if (located == null) return null;
+    String relativePath = relativizeAgainst(file.getPath(), located.root.getPath());
+    if (relativePath == null) return null;
+    return new ResolvedFile(
+            located,
+            relativePath,
+            matchingRules(getRules(located.codeownersFile), relativePath));
   }
 
   /**
@@ -192,6 +217,11 @@ public final class CodeownersService {
   }
 
   private record Located(@NotNull VirtualFile codeownersFile, @NotNull VirtualFile root) {
+  }
+
+  private record ResolvedFile(@NotNull Located located,
+                              @NotNull String relativePath,
+                              @NotNull List<CodeownersRule> matching) {
   }
 
   /**
