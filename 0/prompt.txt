@@ -1,0 +1,1509 @@
+# Find Files Owned by Owner
+
+## Goal
+
+Implement a new CodeOwls feature called **"Find Files Owned by Owner"**.
+
+The feature should allow users to select or right-click an owner inside a CODEOWNERS file and find all project files for which that owner is **effectively responsible**.
+
+Example:
+
+```text
+/src/** @developers
+/src/backend/** @backend-team
+/src/backend/payment/** @payment-team
+```
+
+When the user invokes the action on:
+
+```text
+@backend-team
+```
+
+CodeOwls should show files for which `@backend-team` is part of the **effective ownership**, for example:
+
+```text
+src/backend/UserService.java
+src/backend/UserController.java
+src/backend/order/OrderService.java
+```
+
+but NOT:
+
+```text
+src/backend/payment/PaymentService.java
+```
+
+because the later `/src/backend/payment/** @payment-team` rule overrides the broader backend rule.
+
+The important distinction is:
+
+> Do not simply find rules containing the owner. Find files for which the selected owner is actually an effective CODEOWNERS owner.
+
+---
+
+## Entry Point
+
+Add a context action for valid owner tokens inside a CODEOWNERS file.
+
+Preferred menu:
+
+```text
+Right click @backend-team
+
+CodeOwls
+├── Find Files Owned by @backend-team
+├── Refactor Owner...
+└── ...
+```
+
+Alternatively, integrate it into an existing CodeOwls owner context menu if one already exists.
+
+The action should also be available through **Find Action / Search Everywhere** where appropriate.
+
+If it integrates cleanly with the existing PSI implementation, investigate whether JetBrains' standard:
+
+```text
+Alt+F7 / Find Usages
+```
+
+can invoke this functionality when the caret is on an owner.
+
+However, this integration is optional.
+
+The dedicated context-menu action is the primary requirement.
+
+---
+
+## Supported Owner Types
+
+The action should work for all owner types currently supported by CodeOwls, including where applicable:
+
+```text
+@username
+@group/team
+email@example.com
+@@developer
+@@maintainer
+@@owner
+```
+
+Do not create a separate owner parser.
+
+Reuse the existing CODEOWNERS PSI/token/model infrastructure.
+
+The action must only be enabled when the selected element actually represents an owner.
+
+Do not enable it for:
+
+* patterns
+* comments
+* section names
+* approval counts
+* whitespace
+* arbitrary text
+
+---
+
+# Effective Ownership
+
+This is the most important requirement.
+
+Given:
+
+```text
+/src/** @developers
+/src/backend/** @backend-team
+/src/backend/payment/** @payment-team
+```
+
+the file:
+
+```text
+src/backend/UserService.java
+```
+
+is effectively owned by:
+
+```text
+@backend-team
+```
+
+while:
+
+```text
+src/backend/payment/PaymentService.java
+```
+
+is effectively owned by:
+
+```text
+@payment-team
+```
+
+Searching for files owned by `@backend-team` must therefore NOT include `PaymentService.java`.
+
+Reuse the exact same ownership resolution logic currently used by:
+
+* Explain Ownership
+* the status bar widget
+* existing CODEOWNERS matching
+* GitLab section inheritance
+
+There must not be a separate implementation of CODEOWNERS precedence for this feature.
+
+Ideally there should be one central API conceptually similar to:
+
+```java
+EffectiveOwnership resolveOwnership(VirtualFile file)
+```
+
+which can be reused by all features.
+
+---
+
+# Multiple Owners
+
+A rule can contain multiple owners:
+
+```text
+/src/backend/** @backend-team @alice backend@example.com
+```
+
+All three owners effectively own matching files.
+
+Searching for any of:
+
+```text
+@backend-team
+@alice
+backend@example.com
+```
+
+should return those files.
+
+Do not treat the first owner as special.
+
+---
+
+# GitLab Sections
+
+CodeOwls already supports GitLab CODEOWNERS sections.
+
+The feature must respect their semantics.
+
+Example:
+
+```text
+[Backend] @backend-team
+
+/src/backend/**
+/src/api/**
+```
+
+If these rules inherit `@backend-team`, searching for:
+
+```text
+@backend-team
+```
+
+must include files matched by those rules.
+
+The owner does not have to be explicitly present on every rule.
+
+---
+
+## Explicit Owner Overrides
+
+Given:
+
+```text
+[Backend] @backend-team
+
+/src/backend/**
+/src/backend/payment/** @payment-team
+```
+
+files matched by:
+
+```text
+/src/backend/**
+```
+
+should appear for `@backend-team`.
+
+Files whose effective rule is:
+
+```text
+/src/backend/payment/** @payment-team
+```
+
+should not appear for `@backend-team` if explicit rule owners override the section default according to the existing CodeOwls/GitLab semantics.
+
+Reuse the existing GitLab section resolution logic.
+
+---
+
+# Search Scope
+
+Search within the project/repository associated with the current CODEOWNERS file.
+
+Do not accidentally search:
+
+* IDE configuration files outside the repository
+* external libraries
+* SDK files
+* build caches
+* unrelated content roots
+
+Reuse the same project-file enumeration or scope logic already used by CodeOwls' existing:
+
+* matched-file navigation
+* file-count inlay hints
+* ownership suggestions
+* CODEOWNERS matching
+
+If CodeOwls already has a service for determining project files relevant to CODEOWNERS, use it.
+
+---
+
+# Results UI
+
+Prefer a native JetBrains result UI.
+
+Ideally use the same infrastructure as:
+
+* Find Usages
+* Usage View
+* Search Results
+
+Conceptual result:
+
+```text
+Files owned by @backend-team
+
+src/backend
+├── UserController.java
+├── UserService.java
+├── OrderService.java
+└── repository
+    └── UserRepository.java
+
+4 files
+```
+
+The user should be able to:
+
+* see all matching files
+* see the total number of files
+* double-click a result to open the file
+* use normal JetBrains result navigation
+
+Prefer JetBrains-native search/usage infrastructure over implementing a custom popup with a large file list.
+
+If Usage View is unsuitable for this use case, use an equivalent native JetBrains component.
+
+---
+
+# Result Information
+
+Each result should at minimum contain:
+
+```text
+file path
+```
+
+If reasonably easy with the existing architecture, also expose:
+
+```text
+effective CODEOWNERS rule
+section
+```
+
+For example:
+
+```text
+src/backend/UserService.java
+  /src/backend/** @backend-team
+```
+
+Do not overload the initial implementation with unnecessary information.
+
+The primary purpose is navigating to effectively owned files.
+
+---
+
+# Optional Grouping
+
+If supported naturally by the JetBrains result component, allow results to be grouped by directory.
+
+Example:
+
+```text
+@backend-team — 183 files
+
+src/backend/
+    UserService.java
+    UserController.java
+
+src/api/
+    UserApi.java
+    AdminApi.java
+
+src/database/
+    UserRepository.java
+```
+
+Do not build custom grouping infrastructure if JetBrains already provides it.
+
+---
+
+# Empty Result
+
+If the owner currently owns no files, show a clear result:
+
+```text
+No files are effectively owned by @backend-team.
+```
+
+This can happen even when the owner occurs inside CODEOWNERS.
+
+For example:
+
+```text
+/src/** @backend-team
+/src/** @platform-team
+```
+
+If the second rule completely overrides the first, `@backend-team` may appear in CODEOWNERS but effectively own no files.
+
+This distinction is intentional and important.
+
+---
+
+# Performance
+
+Repositories may contain tens or hundreds of thousands of files.
+
+The implementation must therefore avoid expensive work on the EDT.
+
+Do NOT:
+
+```text
+iterate all project files
+    ↓
+resolve every rule
+    ↓
+block the UI
+```
+
+on the Event Dispatch Thread.
+
+Use appropriate JetBrains background-task APIs.
+
+Show progress where appropriate.
+
+The search should be cancellable for large repositories if JetBrains infrastructure supports it.
+
+Conceptually:
+
+```text
+User invokes action
+        ↓
+Background Task
+        ↓
+Enumerate relevant project files
+        ↓
+Resolve effective ownership
+        ↓
+Filter by selected owner
+        ↓
+Display results on UI thread
+```
+
+Follow existing CodeOwls threading conventions.
+
+---
+
+# Reuse Existing Matching Infrastructure
+
+Before implementing anything new, inspect the existing implementation of:
+
+### Matched-file navigation
+
+CodeOwls already supports:
+
+> A gutter icon on wildcard/directory rules lists the project files matched by that rule.
+
+This likely contains useful infrastructure for:
+
+* enumerating project files
+* matching CODEOWNERS patterns
+* opening/navigating to VirtualFiles
+
+Reuse or extract shared functionality where appropriate.
+
+### File-count inlay hints
+
+CodeOwls already displays:
+
+> the number of files each glob rule matches
+
+Inspect this implementation as well.
+
+Do not introduce another repository scanning implementation if this functionality already exists.
+
+---
+
+# Possible Optimization
+
+A naive implementation could be:
+
+```text
+for every project file:
+    ownership = resolveOwnership(file)
+
+    if ownership.contains(selectedOwner):
+        add result
+```
+
+This is acceptable as a first implementation if:
+
+* it runs in the background
+* existing caching is reused
+* performance is reasonable
+
+However, inspect whether existing CodeOwls indexes/caches can reduce the amount of work.
+
+For example, it may be possible to first determine which rules could produce the selected owner and then evaluate their matched files.
+
+Be careful:
+
+> Filtering only rules containing the owner is NOT sufficient because GitLab section inheritance may provide owners implicitly.
+
+Correctness is more important than premature optimization.
+
+---
+
+# Owner Identity
+
+Owner comparison should use the same semantics as the rest of CodeOwls.
+
+For example:
+
+```text
+@alice
+```
+
+must not accidentally match:
+
+```text
+@alice-team
+@alice2
+```
+
+Similarly:
+
+```text
+alice@example.com
+```
+
+must be treated as a complete owner token.
+
+If CodeOwls already has an owner model/value object, use it instead of comparing arbitrary substrings.
+
+---
+
+# Suggested Architecture
+
+Inspect the existing project architecture first.
+
+A possible design could be:
+
+```text
+FindFilesOwnedByOwnerAction
+             ↓
+       selected Owner PSI
+             ↓
+    OwnershipSearchService
+             ↓
+      project files
+             ↓
+    OwnershipResolver
+             ↓
+     EffectiveOwnership
+             ↓
+        Usage View
+```
+
+For example:
+
+```java
+class OwnershipSearchService {
+
+    List<VirtualFile> findFilesOwnedBy(
+        Project project,
+        CodeOwnersOwner owner
+    );
+}
+```
+
+For performance/cancellation, however, a callback, processor, sequence, or JetBrains query abstraction may be more appropriate than returning a complete `List`.
+
+Follow existing project conventions.
+
+---
+
+# Shared Ownership Resolver
+
+While implementing this feature, inspect whether ownership calculation is currently duplicated between features.
+
+Ideally:
+
+```text
+Status Bar
+      │
+Explain Ownership
+      │
+Find Files Owned By
+      │
+Add CODEOWNERS Entry validation
+      │
+      ▼
+OwnershipResolver
+      │
+      ▼
+EffectiveOwnership
+```
+
+Do not perform a large unrelated refactoring, but extract common logic if necessary to guarantee that all features agree about effective ownership.
+
+---
+
+# Interaction With Explain Ownership
+
+The search results should be consistent with **Explain Ownership**.
+
+For every file returned by:
+
+```text
+Find Files Owned by @backend-team
+```
+
+running:
+
+```text
+Explain Ownership
+```
+
+on that file must show `@backend-team` as one of its effective owners.
+
+This is an important consistency requirement.
+
+---
+
+# Interaction With Refactor Owner
+
+After:
+
+```text
+@backend-team
+```
+
+is refactored to:
+
+```text
+@platform-team
+```
+
+using the existing **Refactor Owner** feature, the search should immediately reflect the updated CODEOWNERS state.
+
+No stale ownership data should remain.
+
+Reuse existing cache invalidation mechanisms.
+
+---
+
+# Interaction With Add CODEOWNERS Entry
+
+Given:
+
+```text
+/src/** @backend-team
+```
+
+and the user adds:
+
+```text
+/src/payment/PaymentService.java @payment-team
+```
+
+using **Add CODEOWNERS Entry**, then:
+
+```text
+Find Files Owned by @backend-team
+```
+
+must no longer include `PaymentService.java`.
+
+And:
+
+```text
+Find Files Owned by @payment-team
+```
+
+must include it.
+
+Again, this should happen naturally through the shared ownership resolver.
+
+---
+
+# Tests
+
+Add automated tests covering at least:
+
+1. owner with one effectively owned file
+2. owner with multiple files
+3. owner with no files
+4. broader rule overridden by later specific rule
+5. completely shadowed owner rule
+6. multiple owners on one rule
+7. similar owner names such as `@alice` and `@alice-team`
+8. email owner
+9. GitLab role owner if supported
+10. GitLab section default owner
+11. GitLab inherited owner
+12. explicit rule owner overriding section owner
+13. multiple GitLab sections
+14. owner appearing in several different rules
+15. files outside the relevant project scope are ignored
+16. exact-file rules
+17. wildcard rules
+18. directory rules
+19. GitLab negation patterns if supported
+20. ownership changes are reflected after document modification
+
+Also verify that existing ownership-resolution, matching, and GitLab-section tests continue to pass.
+
+---
+
+# Implementation Process
+
+Before writing code:
+
+1. Inspect the existing owner PSI/model.
+2. Inspect the existing ownership resolver.
+3. Inspect **Explain Ownership**.
+4. Inspect the status bar ownership lookup.
+5. Inspect matched-file gutter navigation.
+6. Inspect file-count inlay hints.
+7. Inspect GitLab section inheritance.
+8. Inspect project/repository file enumeration.
+9. Inspect existing context-menu action registration.
+10. Check whether the project already uses JetBrains Usage View / Find Usages APIs.
+
+Then briefly determine which existing components can be reused.
+
+Implement the feature using those components.
+
+Avoid:
+
+* duplicate glob matching
+* duplicate ownership resolution
+* plain-text owner matching
+* synchronous repository scanning on the EDT
+* unrelated architectural refactoring
+
+---
+
+# Acceptance Criteria
+
+The feature is complete when:
+
+* I can right-click a valid owner in CODEOWNERS.
+* The menu contains **Find Files Owned by `<owner>`**.
+* The action works for all currently supported owner types.
+* The result contains files for which the selected owner is effectively responsible.
+* Overridden rules do not produce false-positive files.
+* GitLab section-inherited owners are handled correctly.
+* Multiple owners per rule are handled correctly.
+* Results are displayed using an appropriate native JetBrains UI.
+* Files can be opened directly from the results.
+* The total number of owned files is visible.
+* Large searches do not block the EDT.
+* The search uses the same ownership semantics as Explain Ownership and the status bar.
+* Changes made through Refactor Owner or Add CODEOWNERS Entry are reflected correctly.
+* Existing CodeOwls functionality remains unchanged.
+* Automated tests cover effective ownership, overrides, sections, and edge cases.
+
+After implementation:
+
+1. Run the relevant tests.
+2. Run the project's normal build/verification task.
+3. Fix any introduced failures or warnings.
+4. Summarize which files were added or modified.
+5. Explain which existing CodeOwls services were reused.
+6. Explain how effective ownership is determined.
+7. Explain how repository files are enumerated.
+8. Mention how large-repository performance and cancellation are handled.
+9. Mention whether native `Alt+F7 / Find Usages` integration was feasible or intentionally deferred.
+
+---
+
+# Find Files Owned by Owner
+
+## Goal
+
+Implement a new CodeOwls feature called **"Find Files Owned by Owner"**.
+
+The feature should allow users to select or right-click an owner inside a CODEOWNERS file and find all project files for which that owner is **effectively responsible**.
+
+Example:
+
+```text
+/src/** @developers
+/src/backend/** @backend-team
+/src/backend/payment/** @payment-team
+```
+
+When the user invokes the action on:
+
+```text
+@backend-team
+```
+
+CodeOwls should show files for which `@backend-team` is part of the **effective ownership**, for example:
+
+```text
+src/backend/UserService.java
+src/backend/UserController.java
+src/backend/order/OrderService.java
+```
+
+but NOT:
+
+```text
+src/backend/payment/PaymentService.java
+```
+
+because the later `/src/backend/payment/** @payment-team` rule overrides the broader backend rule.
+
+The important distinction is:
+
+> Do not simply find rules containing the owner. Find files for which the selected owner is actually an effective CODEOWNERS owner.
+
+---
+
+## Entry Point
+
+Add a context action for valid owner tokens inside a CODEOWNERS file.
+
+Preferred menu:
+
+```text
+Right click @backend-team
+
+CodeOwls
+├── Find Files Owned by @backend-team
+├── Refactor Owner...
+└── ...
+```
+
+Alternatively, integrate it into an existing CodeOwls owner context menu if one already exists.
+
+The action should also be available through **Find Action / Search Everywhere** where appropriate.
+
+If it integrates cleanly with the existing PSI implementation, investigate whether JetBrains' standard:
+
+```text
+Alt+F7 / Find Usages
+```
+
+can invoke this functionality when the caret is on an owner.
+
+However, this integration is optional.
+
+The dedicated context-menu action is the primary requirement.
+
+---
+
+## Supported Owner Types
+
+The action should work for all owner types currently supported by CodeOwls, including where applicable:
+
+```text
+@username
+@group/team
+email@example.com
+@@developer
+@@maintainer
+@@owner
+```
+
+Do not create a separate owner parser.
+
+Reuse the existing CODEOWNERS PSI/token/model infrastructure.
+
+The action must only be enabled when the selected element actually represents an owner.
+
+Do not enable it for:
+
+* patterns
+* comments
+* section names
+* approval counts
+* whitespace
+* arbitrary text
+
+---
+
+# Effective Ownership
+
+This is the most important requirement.
+
+Given:
+
+```text
+/src/** @developers
+/src/backend/** @backend-team
+/src/backend/payment/** @payment-team
+```
+
+the file:
+
+```text
+src/backend/UserService.java
+```
+
+is effectively owned by:
+
+```text
+@backend-team
+```
+
+while:
+
+```text
+src/backend/payment/PaymentService.java
+```
+
+is effectively owned by:
+
+```text
+@payment-team
+```
+
+Searching for files owned by `@backend-team` must therefore NOT include `PaymentService.java`.
+
+Reuse the exact same ownership resolution logic currently used by:
+
+* Explain Ownership
+* the status bar widget
+* existing CODEOWNERS matching
+* GitLab section inheritance
+
+There must not be a separate implementation of CODEOWNERS precedence for this feature.
+
+Ideally there should be one central API conceptually similar to:
+
+```java
+EffectiveOwnership resolveOwnership(VirtualFile file)
+```
+
+which can be reused by all features.
+
+---
+
+# Multiple Owners
+
+A rule can contain multiple owners:
+
+```text
+/src/backend/** @backend-team @alice backend@example.com
+```
+
+All three owners effectively own matching files.
+
+Searching for any of:
+
+```text
+@backend-team
+@alice
+backend@example.com
+```
+
+should return those files.
+
+Do not treat the first owner as special.
+
+---
+
+# GitLab Sections
+
+CodeOwls already supports GitLab CODEOWNERS sections.
+
+The feature must respect their semantics.
+
+Example:
+
+```text
+[Backend] @backend-team
+
+/src/backend/**
+/src/api/**
+```
+
+If these rules inherit `@backend-team`, searching for:
+
+```text
+@backend-team
+```
+
+must include files matched by those rules.
+
+The owner does not have to be explicitly present on every rule.
+
+---
+
+## Explicit Owner Overrides
+
+Given:
+
+```text
+[Backend] @backend-team
+
+/src/backend/**
+/src/backend/payment/** @payment-team
+```
+
+files matched by:
+
+```text
+/src/backend/**
+```
+
+should appear for `@backend-team`.
+
+Files whose effective rule is:
+
+```text
+/src/backend/payment/** @payment-team
+```
+
+should not appear for `@backend-team` if explicit rule owners override the section default according to the existing CodeOwls/GitLab semantics.
+
+Reuse the existing GitLab section resolution logic.
+
+---
+
+# Search Scope
+
+Search within the project/repository associated with the current CODEOWNERS file.
+
+Do not accidentally search:
+
+* IDE configuration files outside the repository
+* external libraries
+* SDK files
+* build caches
+* unrelated content roots
+
+Reuse the same project-file enumeration or scope logic already used by CodeOwls' existing:
+
+* matched-file navigation
+* file-count inlay hints
+* ownership suggestions
+* CODEOWNERS matching
+
+If CodeOwls already has a service for determining project files relevant to CODEOWNERS, use it.
+
+---
+
+# Results UI
+
+Prefer a native JetBrains result UI.
+
+Ideally use the same infrastructure as:
+
+* Find Usages
+* Usage View
+* Search Results
+
+Conceptual result:
+
+```text
+Files owned by @backend-team
+
+src/backend
+├── UserController.java
+├── UserService.java
+├── OrderService.java
+└── repository
+    └── UserRepository.java
+
+4 files
+```
+
+The user should be able to:
+
+* see all matching files
+* see the total number of files
+* double-click a result to open the file
+* use normal JetBrains result navigation
+
+Prefer JetBrains-native search/usage infrastructure over implementing a custom popup with a large file list.
+
+If Usage View is unsuitable for this use case, use an equivalent native JetBrains component.
+
+---
+
+# Result Information
+
+Each result should at minimum contain:
+
+```text
+file path
+```
+
+If reasonably easy with the existing architecture, also expose:
+
+```text
+effective CODEOWNERS rule
+section
+```
+
+For example:
+
+```text
+src/backend/UserService.java
+  /src/backend/** @backend-team
+```
+
+Do not overload the initial implementation with unnecessary information.
+
+The primary purpose is navigating to effectively owned files.
+
+---
+
+# Optional Grouping
+
+If supported naturally by the JetBrains result component, allow results to be grouped by directory.
+
+Example:
+
+```text
+@backend-team — 183 files
+
+src/backend/
+    UserService.java
+    UserController.java
+
+src/api/
+    UserApi.java
+    AdminApi.java
+
+src/database/
+    UserRepository.java
+```
+
+Do not build custom grouping infrastructure if JetBrains already provides it.
+
+---
+
+# Empty Result
+
+If the owner currently owns no files, show a clear result:
+
+```text
+No files are effectively owned by @backend-team.
+```
+
+This can happen even when the owner occurs inside CODEOWNERS.
+
+For example:
+
+```text
+/src/** @backend-team
+/src/** @platform-team
+```
+
+If the second rule completely overrides the first, `@backend-team` may appear in CODEOWNERS but effectively own no files.
+
+This distinction is intentional and important.
+
+---
+
+# Performance
+
+Repositories may contain tens or hundreds of thousands of files.
+
+The implementation must therefore avoid expensive work on the EDT.
+
+Do NOT:
+
+```text
+iterate all project files
+    ↓
+resolve every rule
+    ↓
+block the UI
+```
+
+on the Event Dispatch Thread.
+
+Use appropriate JetBrains background-task APIs.
+
+Show progress where appropriate.
+
+The search should be cancellable for large repositories if JetBrains infrastructure supports it.
+
+Conceptually:
+
+```text
+User invokes action
+        ↓
+Background Task
+        ↓
+Enumerate relevant project files
+        ↓
+Resolve effective ownership
+        ↓
+Filter by selected owner
+        ↓
+Display results on UI thread
+```
+
+Follow existing CodeOwls threading conventions.
+
+---
+
+# Reuse Existing Matching Infrastructure
+
+Before implementing anything new, inspect the existing implementation of:
+
+### Matched-file navigation
+
+CodeOwls already supports:
+
+> A gutter icon on wildcard/directory rules lists the project files matched by that rule.
+
+This likely contains useful infrastructure for:
+
+* enumerating project files
+* matching CODEOWNERS patterns
+* opening/navigating to VirtualFiles
+
+Reuse or extract shared functionality where appropriate.
+
+### File-count inlay hints
+
+CodeOwls already displays:
+
+> the number of files each glob rule matches
+
+Inspect this implementation as well.
+
+Do not introduce another repository scanning implementation if this functionality already exists.
+
+---
+
+# Possible Optimization
+
+A naive implementation could be:
+
+```text
+for every project file:
+    ownership = resolveOwnership(file)
+
+    if ownership.contains(selectedOwner):
+        add result
+```
+
+This is acceptable as a first implementation if:
+
+* it runs in the background
+* existing caching is reused
+* performance is reasonable
+
+However, inspect whether existing CodeOwls indexes/caches can reduce the amount of work.
+
+For example, it may be possible to first determine which rules could produce the selected owner and then evaluate their matched files.
+
+Be careful:
+
+> Filtering only rules containing the owner is NOT sufficient because GitLab section inheritance may provide owners implicitly.
+
+Correctness is more important than premature optimization.
+
+---
+
+# Owner Identity
+
+Owner comparison should use the same semantics as the rest of CodeOwls.
+
+For example:
+
+```text
+@alice
+```
+
+must not accidentally match:
+
+```text
+@alice-team
+@alice2
+```
+
+Similarly:
+
+```text
+alice@example.com
+```
+
+must be treated as a complete owner token.
+
+If CodeOwls already has an owner model/value object, use it instead of comparing arbitrary substrings.
+
+---
+
+# Suggested Architecture
+
+Inspect the existing project architecture first.
+
+A possible design could be:
+
+```text
+FindFilesOwnedByOwnerAction
+             ↓
+       selected Owner PSI
+             ↓
+    OwnershipSearchService
+             ↓
+      project files
+             ↓
+    OwnershipResolver
+             ↓
+     EffectiveOwnership
+             ↓
+        Usage View
+```
+
+For example:
+
+```java
+class OwnershipSearchService {
+
+    List<VirtualFile> findFilesOwnedBy(
+        Project project,
+        CodeOwnersOwner owner
+    );
+}
+```
+
+For performance/cancellation, however, a callback, processor, sequence, or JetBrains query abstraction may be more appropriate than returning a complete `List`.
+
+Follow existing project conventions.
+
+---
+
+# Shared Ownership Resolver
+
+While implementing this feature, inspect whether ownership calculation is currently duplicated between features.
+
+Ideally:
+
+```text
+Status Bar
+      │
+Explain Ownership
+      │
+Find Files Owned By
+      │
+Add CODEOWNERS Entry validation
+      │
+      ▼
+OwnershipResolver
+      │
+      ▼
+EffectiveOwnership
+```
+
+Do not perform a large unrelated refactoring, but extract common logic if necessary to guarantee that all features agree about effective ownership.
+
+---
+
+# Interaction With Explain Ownership
+
+The search results should be consistent with **Explain Ownership**.
+
+For every file returned by:
+
+```text
+Find Files Owned by @backend-team
+```
+
+running:
+
+```text
+Explain Ownership
+```
+
+on that file must show `@backend-team` as one of its effective owners.
+
+This is an important consistency requirement.
+
+---
+
+# Interaction With Refactor Owner
+
+After:
+
+```text
+@backend-team
+```
+
+is refactored to:
+
+```text
+@platform-team
+```
+
+using the existing **Refactor Owner** feature, the search should immediately reflect the updated CODEOWNERS state.
+
+No stale ownership data should remain.
+
+Reuse existing cache invalidation mechanisms.
+
+---
+
+# Interaction With Add CODEOWNERS Entry
+
+Given:
+
+```text
+/src/** @backend-team
+```
+
+and the user adds:
+
+```text
+/src/payment/PaymentService.java @payment-team
+```
+
+using **Add CODEOWNERS Entry**, then:
+
+```text
+Find Files Owned by @backend-team
+```
+
+must no longer include `PaymentService.java`.
+
+And:
+
+```text
+Find Files Owned by @payment-team
+```
+
+must include it.
+
+Again, this should happen naturally through the shared ownership resolver.
+
+---
+
+# Tests
+
+Add automated tests covering at least:
+
+1. owner with one effectively owned file
+2. owner with multiple files
+3. owner with no files
+4. broader rule overridden by later specific rule
+5. completely shadowed owner rule
+6. multiple owners on one rule
+7. similar owner names such as `@alice` and `@alice-team`
+8. email owner
+9. GitLab role owner if supported
+10. GitLab section default owner
+11. GitLab inherited owner
+12. explicit rule owner overriding section owner
+13. multiple GitLab sections
+14. owner appearing in several different rules
+15. files outside the relevant project scope are ignored
+16. exact-file rules
+17. wildcard rules
+18. directory rules
+19. GitLab negation patterns if supported
+20. ownership changes are reflected after document modification
+
+Also verify that existing ownership-resolution, matching, and GitLab-section tests continue to pass.
+
+---
+
+# Implementation Process
+
+Before writing code:
+
+1. Inspect the existing owner PSI/model.
+2. Inspect the existing ownership resolver.
+3. Inspect **Explain Ownership**.
+4. Inspect the status bar ownership lookup.
+5. Inspect matched-file gutter navigation.
+6. Inspect file-count inlay hints.
+7. Inspect GitLab section inheritance.
+8. Inspect project/repository file enumeration.
+9. Inspect existing context-menu action registration.
+10. Check whether the project already uses JetBrains Usage View / Find Usages APIs.
+
+Then briefly determine which existing components can be reused.
+
+Implement the feature using those components.
+
+Avoid:
+
+* duplicate glob matching
+* duplicate ownership resolution
+* plain-text owner matching
+* synchronous repository scanning on the EDT
+* unrelated architectural refactoring
+
+---
+
+# Acceptance Criteria
+
+The feature is complete when:
+
+* I can right-click a valid owner in CODEOWNERS.
+* The menu contains **Find Files Owned by `<owner>`**.
+* The action works for all currently supported owner types.
+* The result contains files for which the selected owner is effectively responsible.
+* Overridden rules do not produce false-positive files.
+* GitLab section-inherited owners are handled correctly.
+* Multiple owners per rule are handled correctly.
+* Results are displayed using an appropriate native JetBrains UI.
+* Files can be opened directly from the results.
+* The total number of owned files is visible.
+* Large searches do not block the EDT.
+* The search uses the same ownership semantics as Explain Ownership and the status bar.
+* Changes made through Refactor Owner or Add CODEOWNERS Entry are reflected correctly.
+* Existing CodeOwls functionality remains unchanged.
+* Automated tests cover effective ownership, overrides, sections, and edge cases.
+
+After implementation:
+
+1. Run the relevant tests.
+2. Run the project's normal build/verification task.
+3. Fix any introduced failures or warnings.
+4. Summarize which files were added or modified.
+5. Explain which existing CodeOwls services were reused.
+6. Explain how effective ownership is determined.
+7. Explain how repository files are enumerated.
+8. Mention how large-repository performance and cancellation are handled.
+9. Mention whether native `Alt+F7 / Find Usages` integration was feasible or intentionally deferred.
+
+---
+
+Update the plugin.xml with all the missing features
+
+---
+
+Update the plugin.xml with all the missing features
